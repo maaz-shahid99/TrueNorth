@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
     "httpx>=0.27",
+    "sqlalchemy>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +18,10 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.8",
     "mypy>=1.13",
+]
+# Install with `pip install -e ".[postgres]"` to use Postgres instead of SQLite.
+postgres = [
+    "psycopg[binary]>=3.2",
 ]
 
 [project.scripts]

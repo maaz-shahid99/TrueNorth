@@ -16,6 +16,10 @@ __pycache__/
 .venv/
 engine/.env
 
+# Local SQLite audit ledger (dev only)
+*.db
+*.sqlite3
+
 # OS
 Thumbs.db
 .DS_Store

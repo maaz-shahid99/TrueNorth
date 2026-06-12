@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
@@ -128,6 +129,10 @@ class Recommendation(BaseModel):
 # ----- Full decision record (the audit artifact, GV-3) ---------------------------
 
 class DecisionRecord(BaseModel):
+    id: str = Field(
+        default_factory=lambda: uuid4().hex,
+        description="Stable, citable record id; the key used by the audit store.",
+    )
     request: DecisionRequest
     stakes: StakesTier
     model_used: str
@@ -137,3 +142,33 @@ class DecisionRecord(BaseModel):
     recommendation: Recommendation
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     engine_version: str = "0.1.0"
+
+
+# ----- Outcome tracking (DI-8 learning loop) -------------------------------------
+
+class OutcomeRequest(BaseModel):
+    """What a human reports after the fact; the decision id comes from the URL path."""
+
+    realized: str = Field(description="What actually happened after the decision.")
+    success: bool | None = Field(
+        default=None, description="Did the outcome match the recommendation's intent?"
+    )
+    metrics: dict[str, str] = Field(
+        default_factory=dict, description="Realized metrics, e.g. {'rollback': 'no'}."
+    )
+    notes: str = ""
+    recorded_by: str = ""
+
+
+class Outcome(OutcomeRequest):
+    decision_id: str = Field(description="The decision this outcome belongs to.")
+    recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ----- Audit integrity (GV-3) ----------------------------------------------------
+
+class ChainVerification(BaseModel):
+    ok: bool
+    entries_checked: int
+    broken_at_seq: int | None = None
+    detail: str = ""

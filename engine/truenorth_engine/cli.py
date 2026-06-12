@@ -8,8 +8,10 @@ from __future__ import annotations
 import argparse
 import sys
 
+from .config import get_settings
 from .pipeline import evaluate_decision
 from .schemas import DecisionRequest
+from .store import get_store
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -19,6 +21,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", default=None, help="owner/name for the GitHub connector.")
     parser.add_argument("--context", default="")
     parser.add_argument("--option", action="append", default=[], dest="options")
+    parser.add_argument(
+        "--no-save", action="store_true", help="Do not persist to the audit store."
+    )
     args = parser.parse_args(argv)
 
     request = DecisionRequest(
@@ -28,9 +33,13 @@ def main(argv: list[str] | None = None) -> int:
         context=args.context,
         repo=args.repo,
     )
-    record = evaluate_decision(request)
+    settings = get_settings()
+    record = evaluate_decision(request, settings)
+    if not args.no_save:
+        get_store(settings).record_decision(record)
     rec = record.recommendation
-    print(f"\nVERDICT: {rec.verdict.value}   (stakes {record.stakes.value}, "
+    print(f"\nDecision id: {record.id}")
+    print(f"VERDICT: {rec.verdict.value}   (stakes {record.stakes.value}, "
           f"model {record.model_used}, confidence {rec.confidence:.2f})\n")
     print(f"Reasoning: {rec.reasoning}\n")
     if rec.conditions:

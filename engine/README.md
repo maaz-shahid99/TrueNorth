@@ -5,9 +5,17 @@ make; it returns a governed recommendation on the canonical scale —
 **Endorse / Endorse-with-conditions / Caution / Oppose** — with cited evidence,
 calibrated confidence, and an always-attached minority report.
 
-This is **increment 1**: the Python engine for the first decision type, **release
-go/no-go**, with real GitHub evidence. Later increments add the web UI, auth, the
-immutable audit store, Docker/Helm, and the eval harness.
+Built in phases. Done so far:
+
+- **Phase 1** — judgment core for the first decision type, **release go/no-go**, with
+  real GitHub evidence.
+- **Phase 2** — **immutable audit store (GV-3)**: every evaluated decision is persisted
+  to an append-only, SHA-256 hash-chained ledger, with outcome tracking (DI-8) and a
+  chain-verification endpoint. SQLite by default; Postgres for deployment.
+
+Later phases add the eval harness (PL-4), auth + multi-tenancy (SC-1), observability
+(PL-6), a second decision type, and Docker/Helm packaging. The web UI is built
+separately against this API.
 
 ## How it works
 
@@ -31,10 +39,13 @@ return exactly the `Recommendation` schema — no fragile parsing.
 
 ```bash
 cd engine
-python -m venv .venv && . .venv/Scripts/activate   # Windows; use bin/activate on macOS/Linux
-pip install -e ".[dev]"
+conda create -n truenorth python=3.12 -y
+conda run -n truenorth pip install -e ".[dev]"     # add ".[dev,postgres]" to use Postgres
 cp .env.example .env        # then fill in ANTHROPIC_API_KEY (and GITHUB_TOKEN for real evidence)
 ```
+
+By default the audit ledger is a local SQLite file (`truenorth.db`). For a real
+deployment, set `DATABASE_URL=postgresql+psycopg://user:pass@host:5432/truenorth`.
 
 ## Run
 
@@ -48,8 +59,13 @@ API:
 
 ```bash
 uvicorn truenorth_engine.api:app --reload
-# POST http://127.0.0.1:8000/v1/decisions
-#   {"decision_type":"release_go_no_go","question":"Ship 2.4 tonight?","repo":"owner/name"}
+# POST   /v1/decisions                  judge a decision (persisted to the ledger)
+#        {"decision_type":"release_go_no_go","question":"Ship 2.4 tonight?","repo":"owner/name"}
+# GET    /v1/decisions                  list recorded decisions (newest first)
+# GET    /v1/decisions/{id}             fetch one recorded decision
+# POST   /v1/decisions/{id}/outcomes    record what actually happened (DI-8)
+# GET    /v1/decisions/{id}/outcomes    list recorded outcomes
+# GET    /v1/audit/verify               verify the audit hash chain (GV-3)
 ```
 
 ## Test
@@ -72,6 +88,7 @@ truenorth_engine/
   lenses.py         multi-lens evaluation (DI-3)
   pipeline.py       the orchestration loop (DI engine)
   evidence/github.py  release go/no-go evidence connector (DF-1)
+  store/            immutable, hash-chained audit ledger (GV-3) + outcome log (DI-8)
   api.py            FastAPI surface (SX-5)
   cli.py            terminal entrypoint
 ```

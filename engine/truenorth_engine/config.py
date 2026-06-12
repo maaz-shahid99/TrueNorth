@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     github_token: str = ""
 
+    # Where the immutable audit ledger lives. SQLite by default (zero infra); set to a
+    # Postgres URL (postgresql+psycopg://...) for a real deployment.
+    database_url: str = "sqlite:///./truenorth.db"
+
     # Stakes-tiered model routing (PL-1). Override per-tier via TRUENORTH_MODEL_S{1..4}.
     truenorth_model_s1: str = "claude-opus-4-8"
     truenorth_model_s2: str = "claude-opus-4-8"
