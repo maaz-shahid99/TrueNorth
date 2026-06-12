@@ -1,0 +1,10 @@
+# Claude Code agent worktrees and scratch
+.claude/worktrees/
+.mmcheck/
+
+# Node / tooling
+node_modules/
+
+# OS
+Thumbs.db
+.DS_Store
