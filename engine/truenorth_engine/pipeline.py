@@ -103,17 +103,28 @@ def _tier_rank(tier: StakesTier) -> int:
     return {StakesTier.S1: 1, StakesTier.S2: 2, StakesTier.S3: 3, StakesTier.S4: 4}[tier]
 
 
-def evaluate_decision(request: DecisionRequest, settings: Settings | None = None) -> DecisionRecord:
-    """Run the full pipeline and return the auditable decision record."""
+def evaluate_decision(
+    request: DecisionRequest,
+    settings: Settings | None = None,
+    *,
+    gateway: ModelGateway | None = None,
+    evidence: EvidencePack | None = None,
+) -> DecisionRecord:
+    """Run the full pipeline and return the auditable decision record.
+
+    `gateway` and `evidence` may be injected for deterministic evaluation (PL-4); when
+    omitted the engine builds a real model gateway and gathers evidence via connectors.
+    """
     settings = settings or get_settings()
-    gateway = ModelGateway(settings)
+    gateway = gateway or ModelGateway(settings)
 
     if not request.options:
         request.options = ["Proceed", "Do nothing"]
 
     tier = _classify_stakes(gateway, request)
     model_used = settings.model_for_tier(tier)
-    evidence = _gather_evidence(request, settings)
+    if evidence is None:
+        evidence = _gather_evidence(request, settings)
     lenses = run_lenses(gateway, request, evidence, tier)
     devil = _run_devils_advocate(gateway, request, evidence, lenses, tier)
     recommendation = _synthesize(gateway, request, evidence, lenses, devil, tier, settings)

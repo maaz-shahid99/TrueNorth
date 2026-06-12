@@ -12,10 +12,13 @@ Built in phases. Done so far:
 - **Phase 2** — **immutable audit store (GV-3)**: every evaluated decision is persisted
   to an append-only, SHA-256 hash-chained ledger, with outcome tracking (DI-8) and a
   chain-verification endpoint. SQLite by default; Postgres for deployment.
+- **Phase 3** — **eval harness (PL-4)**: a golden decision set plus a deterministic
+  grader that scores the engine's judgments against expectation bands (acceptable
+  verdict set, lenses that must engage, confidence ceilings on thin evidence). Runs
+  offline with a scripted gateway (CI gate) or live against the model.
 
-Later phases add the eval harness (PL-4), auth + multi-tenancy (SC-1), observability
-(PL-6), a second decision type, and Docker/Helm packaging. The web UI is built
-separately against this API.
+Later phases add auth + multi-tenancy (SC-1), observability (PL-6), a second decision
+type, and Docker/Helm packaging. The web UI is built separately against this API.
 
 ## How it works
 
@@ -71,12 +74,15 @@ uvicorn truenorth_engine.api:app --reload
 ## Test
 
 ```bash
-pytest          # schema + routing tests (no API key needed)
-ruff check .    # lint
+pytest                    # schema + store + eval tests (no API key needed)
+ruff check .              # lint
+truenorth-eval --dry-run  # golden-set eval harness, offline (scripted gateway)
+truenorth-eval            # golden-set eval against the live model (needs ANTHROPIC_API_KEY)
 ```
 
-The schema/routing tests run offline; the end-to-end judgment run needs `ANTHROPIC_API_KEY`
-and is exercised via the CLI or the API endpoint.
+The schema/store/eval tests run offline; the end-to-end judgment run needs
+`ANTHROPIC_API_KEY` and is exercised via the CLI, the API endpoint, or a live
+`truenorth-eval`.
 
 ## Layout
 
@@ -89,6 +95,7 @@ truenorth_engine/
   pipeline.py       the orchestration loop (DI engine)
   evidence/github.py  release go/no-go evidence connector (DF-1)
   store/            immutable, hash-chained audit ledger (GV-3) + outcome log (DI-8)
+  eval/             golden decision set + deterministic grader + runner (PL-4)
   api.py            FastAPI surface (SX-5)
   cli.py            terminal entrypoint
 ```
