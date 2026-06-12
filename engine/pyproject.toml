@@ -27,6 +27,7 @@ postgres = [
 [project.scripts]
 truenorth = "truenorth_engine.cli:main"
 truenorth-eval = "truenorth_engine.eval.__main__:main"
+truenorth-admin = "truenorth_engine.auth.admin_cli:main"
 
 [build-system]
 requires = ["hatchling"]

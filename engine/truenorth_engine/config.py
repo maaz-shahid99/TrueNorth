@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # Use adaptive thinking on the high-stakes synthesis step.
     synthesis_thinking_min_tier: StakesTier = StakesTier.S2
 
+    # Stakes tiers that require human sign-off before a decision counts as approved
+    # (DI-7 / GV-2). Default: existential and executive decisions.
+    review_required_tiers: list[StakesTier] = [StakesTier.S1, StakesTier.S2]
+
     def model_for_tier(self, tier: StakesTier) -> str:
         return {
             StakesTier.S1: self.truenorth_model_s1,

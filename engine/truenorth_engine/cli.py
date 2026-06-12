@@ -24,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--no-save", action="store_true", help="Do not persist to the audit store."
     )
+    parser.add_argument("--tenant", default="default", help="Tenant to record under.")
     args = parser.parse_args(argv)
 
     request = DecisionRequest(
@@ -36,9 +37,11 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
     record = evaluate_decision(request, settings)
     if not args.no_save:
-        get_store(settings).record_decision(record)
+        get_store(settings).record_decision(record, args.tenant)
     rec = record.recommendation
     print(f"\nDecision id: {record.id}")
+    if record.review_required:
+        print(f"Review: {record.review_state.value} (human sign-off required for this tier)")
     print(f"VERDICT: {rec.verdict.value}   (stakes {record.stakes.value}, "
           f"model {record.model_used}, confidence {rec.confidence:.2f})\n")
     print(f"Reasoning: {rec.reasoning}\n")

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -37,6 +38,13 @@ class LensName(str, Enum):
     PEOPLE = "people"
     CUSTOMER = "customer"
     ESG = "esg"
+
+
+class ReviewState(str, Enum):
+    NOT_REQUIRED = "not_required"  # stakes below the review threshold
+    PENDING = "pending"  # awaiting human sign-off
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 # ----- Inputs --------------------------------------------------------------------
@@ -140,6 +148,10 @@ class DecisionRecord(BaseModel):
     lenses: list[ScoredLens]
     devils_advocate: DevilsAdvocate
     recommendation: Recommendation
+    review_required: bool = Field(
+        default=False, description="Whether stakes require human sign-off (DI-7 / GV-2)."
+    )
+    review_state: ReviewState = ReviewState.NOT_REQUIRED
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     engine_version: str = "0.1.0"
 
@@ -172,3 +184,25 @@ class ChainVerification(BaseModel):
     entries_checked: int
     broken_at_seq: int | None = None
     detail: str = ""
+
+
+# ----- Human review / sign-off (DI-7 / GV-2) -------------------------------------
+
+class ReviewActionInput(BaseModel):
+    """What a reviewer submits; the decision id and actor come from the request."""
+
+    action: Literal["approve", "reject"]
+    note: str = ""
+
+
+class ReviewAction(ReviewActionInput):
+    decision_id: str
+    actor: str = Field(description="The reviewer's principal subject.")
+    at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ReviewStatus(BaseModel):
+    decision_id: str
+    required: bool
+    state: ReviewState
+    history: list[ReviewAction] = Field(default_factory=list)

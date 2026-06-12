@@ -33,4 +33,9 @@ def make_session_factory(engine: Engine) -> sessionmaker:
 
 
 def init_db(engine: Engine) -> None:
+    # Import model modules so their tables are registered on Base.metadata before
+    # create_all. Done lazily here to avoid an import cycle (auth.models imports Base).
+    from . import models  # noqa: F401
+    from ..auth import models as _auth_models  # noqa: F401
+
     Base.metadata.create_all(engine)

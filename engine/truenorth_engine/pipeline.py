@@ -15,12 +15,14 @@ from .config import Settings, get_settings
 from .evidence.github import gather_release_evidence
 from .lenses import run_lenses
 from .model_gateway import ModelGateway
+from .review import review_required
 from .schemas import (
     DecisionRecord,
     DecisionRequest,
     DevilsAdvocate,
     EvidencePack,
     Recommendation,
+    ReviewState,
     StakesTier,
 )
 
@@ -129,6 +131,7 @@ def evaluate_decision(
     devil = _run_devils_advocate(gateway, request, evidence, lenses, tier)
     recommendation = _synthesize(gateway, request, evidence, lenses, devil, tier, settings)
 
+    needs_review = review_required(tier, settings)
     return DecisionRecord(
         request=request,
         stakes=tier,
@@ -137,4 +140,6 @@ def evaluate_decision(
         lenses=lenses,
         devils_advocate=devil,
         recommendation=recommendation,
+        review_required=needs_review,
+        review_state=ReviewState.PENDING if needs_review else ReviewState.NOT_REQUIRED,
     )

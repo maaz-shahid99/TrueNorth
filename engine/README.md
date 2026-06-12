@@ -16,9 +16,14 @@ Built in phases. Done so far:
   grader that scores the engine's judgments against expectation bands (acceptable
   verdict set, lenses that must engage, confidence ceilings on thin evidence). Runs
   offline with a scripted gateway (CI gate) or live against the model.
+- **Phase 4** — **auth, multi-tenancy & RBAC (SC-1) + review gates (DI-7 / GV-2)**:
+  per-tenant API keys with role-based permissions on every endpoint; the audit ledger is
+  tenant-isolated; high-stakes decisions (S1/S2) require a reviewer's sign-off, recorded
+  to the same tamper-evident chain. API-key resolution is a seam an OIDC/JWT verifier
+  drops into later.
 
-Later phases add auth + multi-tenancy (SC-1), observability (PL-6), a second decision
-type, and Docker/Helm packaging. The web UI is built separately against this API.
+Later phases add observability (PL-6), a second decision type, and Docker/Helm packaging.
+The web UI is built separately against this API.
 
 ## How it works
 
@@ -60,15 +65,28 @@ truenorth "Should we ship release 2.4 tonight?" --repo owner/name
 
 API:
 
+All endpoints except `/healthz` require an API key (header `X-API-Key: <key>` or
+`Authorization: Bearer <key>`) and are scoped to the key's tenant. Mint one first:
+
+```bash
+truenorth-admin mint --tenant acme --subject alice@acme --role requester --role reviewer
+truenorth-admin list --tenant acme
+truenorth-admin revoke --id <key-id> --tenant acme
+```
+
+Roles: `viewer` (read), `requester` (read + create + outcomes), `reviewer` (read +
+sign-off + audit), `admin` (all).
+
 ```bash
 uvicorn truenorth_engine.api:app --reload
-# POST   /v1/decisions                  judge a decision (persisted to the ledger)
-#        {"decision_type":"release_go_no_go","question":"Ship 2.4 tonight?","repo":"owner/name"}
-# GET    /v1/decisions                  list recorded decisions (newest first)
-# GET    /v1/decisions/{id}             fetch one recorded decision
-# POST   /v1/decisions/{id}/outcomes    record what actually happened (DI-8)
-# GET    /v1/decisions/{id}/outcomes    list recorded outcomes
-# GET    /v1/audit/verify               verify the audit hash chain (GV-3)
+# POST   /v1/decisions                  decision:create   judge + persist (tenant-scoped)
+# GET    /v1/decisions                  decision:list     list this tenant's decisions
+# GET    /v1/decisions/{id}             decision:read     fetch one decision
+# POST   /v1/decisions/{id}/outcomes    outcome:write     record what happened (DI-8)
+# GET    /v1/decisions/{id}/outcomes    decision:read     list recorded outcomes
+# POST   /v1/decisions/{id}/review      review:act        approve / reject (DI-7 / GV-2)
+# GET    /v1/decisions/{id}/review      decision:read     review state + history
+# GET    /v1/audit/verify               audit:verify      verify the tenant's hash chain
 ```
 
 ## Test
@@ -96,7 +114,9 @@ truenorth_engine/
   evidence/github.py  release go/no-go evidence connector (DF-1)
   store/            immutable, hash-chained audit ledger (GV-3) + outcome log (DI-8)
   eval/             golden decision set + deterministic grader + runner (PL-4)
-  api.py            FastAPI surface (SX-5)
+  auth/             API keys, RBAC, tenant Principal, admin CLI (SC-1)
+  review.py         stakes-tiered human sign-off gates (DI-7 / GV-2)
+  api.py            FastAPI surface (SX-5), authenticated + multi-tenant
   cli.py            terminal entrypoint
 ```
 

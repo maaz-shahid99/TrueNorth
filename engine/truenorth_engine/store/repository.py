@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from ..schemas import ChainVerification, DecisionRecord, Outcome
+from ..schemas import ChainVerification, DecisionRecord, Outcome, ReviewAction
 from .audit import GENESIS, canonical_json, compute_hash
 from .models import AuditEntry
 
@@ -80,6 +80,15 @@ class DecisionStore:
             tenant_id=tenant_id,
         )
 
+    def record_review(self, action: ReviewAction, tenant_id: str = "default") -> str:
+        """Append a human sign-off action to the same tamper-evident chain (DI-7 / GV-2)."""
+        return self._append(
+            entry_type="review",
+            decision_id=action.decision_id,
+            payload_obj=action,
+            tenant_id=tenant_id,
+        )
+
     # ----- reads ------------------------------------------------------------------
 
     def get_decision(self, decision_id: str, tenant_id: str = "default") -> DecisionRecord | None:
@@ -132,6 +141,23 @@ class DecisionStore:
                 .all()
             )
             return [Outcome.model_validate_json(r.payload) for r in rows]
+
+    def get_reviews(self, decision_id: str, tenant_id: str = "default") -> list[ReviewAction]:
+        with self._sf() as session:
+            rows = (
+                session.execute(
+                    select(AuditEntry)
+                    .where(
+                        AuditEntry.tenant_id == tenant_id,
+                        AuditEntry.entry_type == "review",
+                        AuditEntry.decision_id == decision_id,
+                    )
+                    .order_by(AuditEntry.seq.asc())
+                )
+                .scalars()
+                .all()
+            )
+            return [ReviewAction.model_validate_json(r.payload) for r in rows]
 
     # ----- integrity --------------------------------------------------------------
 
