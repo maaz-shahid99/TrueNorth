@@ -1,0 +1,31 @@
+# Local/integration stack: the decision engine backed by Postgres.
+# Usage:  ANTHROPIC_API_KEY=sk-ant-... docker compose up --build
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: truenorth
+      POSTGRES_PASSWORD: truenorth
+      POSTGRES_DB: truenorth
+    volumes:
+      - tn_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U truenorth"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  engine:
+    build: ./engine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://truenorth:truenorth@db:5432/truenorth
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    ports:
+      - "8000:8000"
+
+volumes:
+  tn_pgdata:

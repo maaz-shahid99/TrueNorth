@@ -29,9 +29,13 @@ Built in phases. Done so far:
   gathering dispatches through a connector registry keyed by decision type. Adds
   `discount_approval` with a manual-input connector (deal facts via `inputs`), so it
   works today and is the exact seam a CRM connector (Salesforce/HubSpot) replaces later.
+- **Phase 7** — **packaging & deploy (PL-7)**: Dockerfile (non-root, migrate-then-serve
+  entrypoint), `docker-compose.yml` (engine + Postgres), Alembic migrations (production
+  schema management; `create_all` remains for dev/tests), and a Helm chart skeleton under
+  `deploy/helm/truenorth-engine`.
 
-The remaining phase is Docker/Helm packaging. The web UI is built separately against
-this API.
+The backend is feature-complete across these phases. The web UI is built separately
+against this API.
 
 ## How it works
 
@@ -114,6 +118,24 @@ truenorth-eval            # golden-set eval against the live model (needs ANTHRO
 The schema/store/eval tests run offline; the end-to-end judgment run needs
 `ANTHROPIC_API_KEY` and is exercised via the CLI, the API endpoint, or a live
 `truenorth-eval`.
+
+## Deploy
+
+```bash
+# Whole stack (engine + Postgres) locally; migrations run automatically on start.
+ANTHROPIC_API_KEY=sk-ant-... docker compose up --build      # from the repo root
+
+# Apply migrations manually against any DATABASE_URL:
+DATABASE_URL=postgresql+psycopg://user:pass@host:5432/truenorth alembic upgrade head
+
+# Kubernetes (chart skeleton):
+helm install truenorth deploy/helm/truenorth-engine \
+  --set secrets.anthropicApiKey=sk-ant-... \
+  --set config.databaseUrl=postgresql+psycopg://user:pass@host:5432/truenorth
+```
+
+Production uses Alembic for schema management; the dev/test `create_all` path is only a
+convenience for the SQLite default.
 
 ## Layout
 

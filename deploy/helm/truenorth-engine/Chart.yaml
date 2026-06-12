@@ -1,0 +1,6 @@
+apiVersion: v2
+name: truenorth-engine
+description: TrueNorth decision-intelligence engine (API + judgment pipeline).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
