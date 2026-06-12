@@ -48,6 +48,7 @@ class ScriptedGateway:
         output_format: type[T],
         max_tokens: int = 4000,
         use_thinking: bool = False,
+        step: str = "",
     ) -> T:
         if output_format is LensAssessment:
             return LensAssessment(  # type: ignore[return-value]

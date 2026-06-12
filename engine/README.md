@@ -21,9 +21,13 @@ Built in phases. Done so far:
   tenant-isolated; high-stakes decisions (S1/S2) require a reviewer's sign-off, recorded
   to the same tamper-evident chain. API-key resolution is a seam an OIDC/JWT verifier
   drops into later.
+- **Phase 5** — **observability & cost (PL-6)**: every model call records tokens,
+  latency, and an estimated USD cost via a Telemetry collector; the totals roll up onto
+  each DecisionRecord (`usage`) so spend is auditable, and each call emits a structured
+  log line. OTel exporters plug into the same seam.
 
-Later phases add observability (PL-6), a second decision type, and Docker/Helm packaging.
-The web UI is built separately against this API.
+Later phases add a second decision type and Docker/Helm packaging. The web UI is built
+separately against this API.
 
 ## How it works
 
@@ -115,6 +119,7 @@ truenorth_engine/
   store/            immutable, hash-chained audit ledger (GV-3) + outcome log (DI-8)
   eval/             golden decision set + deterministic grader + runner (PL-4)
   auth/             API keys, RBAC, tenant Principal, admin CLI (SC-1)
+  telemetry.py      per-call token/latency/cost capture + structured logs (PL-6)
   review.py         stakes-tiered human sign-off gates (DI-7 / GV-2)
   api.py            FastAPI surface (SX-5), authenticated + multi-tenant
   cli.py            terminal entrypoint

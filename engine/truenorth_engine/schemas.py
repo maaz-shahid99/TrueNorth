@@ -134,6 +134,27 @@ class Recommendation(BaseModel):
     )
 
 
+# ----- Telemetry & cost (PL-6) ---------------------------------------------------
+
+class CallUsage(BaseModel):
+    step: str
+    model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    latency_ms: int = 0
+    cost_usd: float = 0.0
+
+
+class UsageSummary(BaseModel):
+    calls: list[CallUsage] = Field(default_factory=list)
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_cost_usd: float = 0.0
+    total_latency_ms: int = 0
+
+
 # ----- Full decision record (the audit artifact, GV-3) ---------------------------
 
 class DecisionRecord(BaseModel):
@@ -152,6 +173,7 @@ class DecisionRecord(BaseModel):
         default=False, description="Whether stakes require human sign-off (DI-7 / GV-2)."
     )
     review_state: ReviewState = ReviewState.NOT_REQUIRED
+    usage: UsageSummary = Field(default_factory=UsageSummary)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     engine_version: str = "0.1.0"
 

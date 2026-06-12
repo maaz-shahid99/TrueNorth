@@ -71,6 +71,7 @@ def run_lenses(gateway, request: DecisionRequest, evidence: EvidencePack, tier: 
             instruction=_lens_instruction(lens, request, evidence),
             output_format=LensAssessment,
             max_tokens=1500,
+            step=f"lens:{lens.value}",
         )
         results.append(ScoredLens(lens=lens, assessment=assessment))
     return results

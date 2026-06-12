@@ -25,6 +25,7 @@ from .schemas import (
     ReviewState,
     StakesTier,
 )
+from .telemetry import Telemetry
 
 
 class _StakesClassification(BaseModel):
@@ -45,6 +46,7 @@ def _classify_stakes(gateway: ModelGateway, request: DecisionRequest) -> StakesT
         ),
         output_format=_StakesClassification,
         max_tokens=400,
+        step="stakes-classification",
     )
     return result.stakes
 
@@ -70,6 +72,7 @@ def _run_devils_advocate(gateway, request, evidence, lenses, tier) -> DevilsAdvo
         ),
         output_format=DevilsAdvocate,
         max_tokens=1500,
+        step="devils-advocate",
     )
 
 
@@ -98,6 +101,7 @@ def _synthesize(gateway, request, evidence, lenses, devil, tier, settings) -> Re
         output_format=Recommendation,
         max_tokens=2500,
         use_thinking=use_thinking,
+        step="synthesis",
     )
 
 
@@ -118,7 +122,8 @@ def evaluate_decision(
     omitted the engine builds a real model gateway and gathers evidence via connectors.
     """
     settings = settings or get_settings()
-    gateway = gateway or ModelGateway(settings)
+    telemetry = Telemetry()
+    gateway = gateway or ModelGateway(settings, telemetry=telemetry)
 
     if not request.options:
         request.options = ["Proceed", "Do nothing"]
@@ -142,4 +147,5 @@ def evaluate_decision(
         recommendation=recommendation,
         review_required=needs_review,
         review_state=ReviewState.PENDING if needs_review else ReviewState.NOT_REQUIRED,
+        usage=telemetry.summary(),
     )
