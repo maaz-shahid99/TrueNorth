@@ -1,9 +1,20 @@
-# Claude Code agent worktrees and scratch
+# Claude Code agent worktrees, local settings, and scratch
 .claude/worktrees/
+.claude/settings.local.json
 .mmcheck/
 
 # Node / tooling
 node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+engine/.env
 
 # OS
 Thumbs.db
