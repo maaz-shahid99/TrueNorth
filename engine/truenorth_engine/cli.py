@@ -22,10 +22,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--context", default="")
     parser.add_argument("--option", action="append", default=[], dest="options")
     parser.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        dest="inputs",
+        metavar="KEY=VALUE",
+        help="Connector input as key=value (repeatable); e.g. discount_pct=35.",
+    )
+    parser.add_argument(
         "--no-save", action="store_true", help="Do not persist to the audit store."
     )
     parser.add_argument("--tenant", default="default", help="Tenant to record under.")
     args = parser.parse_args(argv)
+
+    inputs: dict[str, str] = {}
+    for pair in args.inputs:
+        if "=" in pair:
+            key, value = pair.split("=", 1)
+            inputs[key.strip()] = value.strip()
 
     request = DecisionRequest(
         decision_type=args.decision_type,
@@ -33,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
         options=args.options,
         context=args.context,
         repo=args.repo,
+        inputs=inputs,
     )
     settings = get_settings()
     record = evaluate_decision(request, settings)

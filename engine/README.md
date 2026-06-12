@@ -25,9 +25,13 @@ Built in phases. Done so far:
   latency, and an estimated USD cost via a Telemetry collector; the totals roll up onto
   each DecisionRecord (`usage`) so spend is auditable, and each call emits a structured
   log line. OTel exporters plug into the same seam.
+- **Phase 6** — **connector abstraction (DF-1) + second decision type**: evidence
+  gathering dispatches through a connector registry keyed by decision type. Adds
+  `discount_approval` with a manual-input connector (deal facts via `inputs`), so it
+  works today and is the exact seam a CRM connector (Salesforce/HubSpot) replaces later.
 
-Later phases add a second decision type and Docker/Helm packaging. The web UI is built
-separately against this API.
+The remaining phase is Docker/Helm packaging. The web UI is built separately against
+this API.
 
 ## How it works
 
@@ -64,7 +68,12 @@ deployment, set `DATABASE_URL=postgresql+psycopg://user:pass@host:5432/truenorth
 CLI:
 
 ```bash
+# Release go/no-go (GitHub evidence)
 truenorth "Should we ship release 2.4 tonight?" --repo owner/name
+
+# Discount approval (deal facts supplied as connector inputs)
+truenorth "Approve a 35% discount on the Globex renewal?" --type discount_approval \
+  --input discount_pct=35 --input gross_margin_pct=12 --input customer_tier=mid-market
 ```
 
 API:
@@ -115,7 +124,7 @@ truenorth_engine/
   model_gateway.py  Anthropic Messages API wrapper: structured outputs + prompt caching
   lenses.py         multi-lens evaluation (DI-3)
   pipeline.py       the orchestration loop (DI engine)
-  evidence/github.py  release go/no-go evidence connector (DF-1)
+  evidence/          connector registry (DF-1): github (release), discount (CRM seam)
   store/            immutable, hash-chained audit ledger (GV-3) + outcome log (DI-8)
   eval/             golden decision set + deterministic grader + runner (PL-4)
   auth/             API keys, RBAC, tenant Principal, admin CLI (SC-1)

@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import httpx
 
-from ..schemas import EvidenceItem, EvidencePack
+from ..config import Settings
+from ..schemas import DecisionRequest, EvidenceItem, EvidencePack
 
 _API = "https://api.github.com"
 
@@ -86,3 +87,10 @@ def gather_release_evidence(repo: str | None, token: str | None) -> EvidencePack
 
     sufficiency = "adequate" if len(items) >= 3 else "thin"
     return EvidencePack(items=items, sufficiency=sufficiency)
+
+
+class GitHubReleaseConnector:
+    """Connector adapter for release go/no-go: reads `request.repo` and the GitHub token."""
+
+    def gather(self, request: DecisionRequest, settings: Settings) -> EvidencePack:
+        return gather_release_evidence(request.repo, settings.github_token or None)

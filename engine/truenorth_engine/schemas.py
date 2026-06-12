@@ -64,6 +64,8 @@ class DecisionRequest(BaseModel):
     )
     # Connector hints — for release_go_no_go, the GitHub repo to gather evidence from.
     repo: str | None = Field(default=None, description="owner/name for the GitHub connector.")
+    # Structured connector inputs, e.g. discount_approval deal facts (discount_pct, etc.).
+    inputs: dict[str, str] = Field(default_factory=dict)
 
 
 # ----- Evidence (DI-2) -----------------------------------------------------------

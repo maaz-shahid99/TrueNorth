@@ -12,7 +12,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from .config import Settings, get_settings
-from .evidence.github import gather_release_evidence
+from .evidence import gather_evidence
 from .lenses import run_lenses
 from .model_gateway import ModelGateway
 from .review import review_required
@@ -52,9 +52,7 @@ def _classify_stakes(gateway: ModelGateway, request: DecisionRequest) -> StakesT
 
 
 def _gather_evidence(request: DecisionRequest, settings: Settings) -> EvidencePack:
-    if request.decision_type == "release_go_no_go":
-        return gather_release_evidence(request.repo, settings.github_token or None)
-    return EvidencePack(sufficiency="unavailable", notes="No connector for this decision type yet.")
+    return gather_evidence(request, settings)
 
 
 def _run_devils_advocate(gateway, request, evidence, lenses, tier) -> DevilsAdvocate:

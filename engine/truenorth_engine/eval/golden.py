@@ -124,4 +124,47 @@ GOLDEN_CASES: list[GoldenCase] = [
         max_confidence=0.8,
         note="With no evidence, confidence must stay modest and the verdict must not be a clean Endorse.",
     ),
+    GoldenCase(
+        id="discount-deep-low-margin",
+        request=DecisionRequest(
+            decision_type="discount_approval",
+            question="Approve a 35% discount on the Globex renewal?",
+            stakes=StakesTier.S3,
+            inputs={
+                "discount_pct": "35",
+                "gross_margin_pct": "12",
+                "customer_tier": "mid-market, non-strategic",
+                "approver_limit_pct": "15",
+            },
+        ),
+        evidence=EvidencePack(
+            items=[
+                EvidenceItem(
+                    claim="Requested discount (%)", value="35", source="manual:requester"
+                ),
+                EvidenceItem(
+                    claim="Resulting gross margin (%)", value="12", source="manual:requester"
+                ),
+                EvidenceItem(
+                    claim="Customer tier / strategic importance",
+                    value="mid-market, non-strategic",
+                    source="manual:requester",
+                ),
+                EvidenceItem(
+                    claim="Discount the requester can self-approve (%)",
+                    value="15",
+                    source="manual:requester",
+                ),
+            ],
+            sufficiency="adequate",
+        ),
+        acceptable_verdicts=[
+            Verdict.CAUTION,
+            Verdict.OPPOSE,
+            Verdict.ENDORSE_WITH_CONDITIONS,
+        ],
+        must_engage_lenses=[LensName.FINANCIAL],
+        note="A deep discount that crushes margin on a non-strategic, above-limit deal "
+        "must not be a clean Endorse.",
+    ),
 ]
