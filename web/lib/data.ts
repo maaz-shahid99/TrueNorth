@@ -2,7 +2,7 @@
 // otherwise falls back to the bundled fixtures so the UI is fully reviewable offline.
 import { engineConfigured, engineFetch } from "./engine";
 import { mockDecisions, sampleDecision } from "./mock";
-import type { DecisionRecord } from "./types";
+import type { DecisionRecord, Outcome } from "./types";
 
 export async function getDecision(id: string): Promise<DecisionRecord | null> {
   if (!engineConfigured()) {
@@ -20,4 +20,11 @@ export async function listDecisions(): Promise<DecisionRecord[]> {
   const res = await engineFetch("/v1/decisions?limit=100");
   if (!res.ok) throw new Error(`Engine returned ${res.status} listing decisions`);
   return (await res.json()) as DecisionRecord[];
+}
+
+export async function getOutcomes(id: string): Promise<Outcome[]> {
+  if (!engineConfigured()) return [];
+  const res = await engineFetch(`/v1/decisions/${encodeURIComponent(id)}/outcomes`);
+  if (!res.ok) return [];
+  return (await res.json()) as Outcome[];
 }

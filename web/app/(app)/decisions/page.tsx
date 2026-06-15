@@ -1,18 +1,22 @@
-import { History } from "lucide-react";
-import { EmptyState } from "@/components/ui/EmptyState";
+import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { DecisionsTable } from "@/components/decision/DecisionsTable";
+import { listDecisions } from "@/lib/data";
 
-export default function DecisionsHistoryPage() {
+export default async function DecisionsHistoryPage() {
+  const decisions = await listDecisions();
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Decisions</h1>
-        <p className="text-sm text-muted">Every decision your workspace has judged.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Decisions</h1>
+          <p className="text-sm text-muted">Every decision your workspace has judged.</p>
+        </div>
+        <Link href="/decisions/new">
+          <Button>New decision</Button>
+        </Link>
       </div>
-      <EmptyState
-        icon={<History className="h-6 w-6" />}
-        title="History table arrives in UI-3"
-        description="This will list and filter all recorded decisions, wired to GET /v1/decisions."
-      />
+      <DecisionsTable decisions={decisions} />
     </div>
   );
 }

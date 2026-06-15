@@ -6,11 +6,12 @@ import { DevilsAdvocatePanel } from "@/components/decision/DevilsAdvocatePanel";
 import { EvidenceList } from "@/components/decision/EvidenceList";
 import { LensCard } from "@/components/decision/LensCard";
 import { MinorityReport } from "@/components/decision/MinorityReport";
+import { OutcomePanel } from "@/components/decision/OutcomePanel";
 import { ReviewPanel } from "@/components/decision/ReviewPanel";
 import { VerdictBanner } from "@/components/decision/VerdictBanner";
 import { Badge, ReviewPill, StakesPill } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/ui/Card";
-import { getDecision } from "@/lib/data";
+import { getDecision, getOutcomes } from "@/lib/data";
 import { formatCurrency, formatDateTime, formatTokens } from "@/lib/format";
 import { decisionTypeLabel } from "@/lib/verdict";
 
@@ -22,6 +23,7 @@ export default async function DecisionDetailPage({
   const { id } = await params;
   const d = await getDecision(id);
   if (!d) notFound();
+  const outcomes = await getOutcomes(d.id);
 
   const typeLabel = decisionTypeLabel[d.request.decision_type] ?? d.request.decision_type;
 
@@ -64,6 +66,7 @@ export default async function DecisionDetailPage({
 
         <div className="space-y-6">
           <ReviewPanel decision={d} />
+          <OutcomePanel decisionId={d.id} initialOutcomes={outcomes} />
           <SectionCard title="Details">
             <dl className="space-y-2.5 text-sm">
               <Row k="Decision type" v={typeLabel} />

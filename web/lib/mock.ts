@@ -1,6 +1,6 @@
 // Mock data so the shell and pages render without the engine running (UI-1), and a sample
 // DecisionRecord that doubles as the offline fixture for the Decision Detail page (UI-2).
-import type { DecisionRecord } from "./types";
+import type { DecisionRecord, DecisionRequest, StakesTier } from "./types";
 
 export const sampleDecision: DecisionRecord = {
   id: "demo-release-2-4",
@@ -148,3 +148,28 @@ export const mockActivity: Activity[] = [
   { id: "a3", text: "Outcome recorded for “Switch primary cloud vendor”", at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString() },
   { id: "a4", text: "Audit chain verified — 128 entries intact", at: new Date(Date.now() - 1000 * 60 * 60 * 7).toISOString() },
 ];
+
+// Synthesize a plausible record for the New Decision flow when no engine is configured,
+// so the submit → detail experience works fully offline (demo mode only).
+export function makeDemoDecision(req: Partial<DecisionRequest>): DecisionRecord {
+  const stakes = (req.stakes as StakesTier) || "S3";
+  const reviewRequired = stakes === "S1" || stakes === "S2";
+  return {
+    ...sampleDecision,
+    id: `demo-${Math.random().toString(36).slice(2, 10)}`,
+    stakes,
+    review_required: reviewRequired,
+    review_state: reviewRequired ? "pending" : "not_required",
+    request: {
+      decision_type: req.decision_type || "release_go_no_go",
+      question: req.question || "(no question)",
+      options: req.options || [],
+      context: req.context || "",
+      stakes: (req.stakes as StakesTier) ?? null,
+      repo: req.repo ?? null,
+      inputs: req.inputs || {},
+    },
+    created_at: new Date().toISOString(),
+  };
+}
+
