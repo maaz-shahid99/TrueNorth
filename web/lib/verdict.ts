@@ -53,3 +53,13 @@ export const decisionTypeLabel: Record<string, string> = {
   release_go_no_go: "Release go/no-go",
   discount_approval: "Discount approval",
 };
+
+// Hex values for SVG chart fills (Tailwind classes can't style chart primitives).
+export const verdictHex: Record<Verdict, string> = {
+  Endorse: "#16A34A",
+  "Endorse-with-conditions": "#0EA5E9",
+  Caution: "#D97706",
+  Oppose: "#DC2626",
+};
+
+export const BRAND_HEX = "#6366F1";

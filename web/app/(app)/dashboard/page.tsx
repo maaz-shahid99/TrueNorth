@@ -1,15 +1,28 @@
 import Link from "next/link";
+import { StakesBars } from "@/components/charts/StakesBars";
+import { TrendChart } from "@/components/charts/TrendChart";
+import { VerdictDonut } from "@/components/charts/VerdictDonut";
+import { RightPanel } from "@/components/layout/RightPanel";
 import { ReviewPill, StakesPill, VerdictPill } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/Table";
-import { RightPanel } from "@/components/layout/RightPanel";
-import { formatDate } from "@/lib/format";
-import { mockActivity, mockDecisions } from "@/lib/mock";
-import { decisionTypeLabel } from "@/lib/verdict";
+import { listDecisions } from "@/lib/data";
+import { formatCurrency, formatDate } from "@/lib/format";
+import type { Activity } from "@/lib/mock";
+import { computeStats } from "@/lib/stats";
+import { decisionTypeLabel, verdictStyles } from "@/lib/verdict";
 
-export default function DashboardPage() {
-  const pending = mockDecisions.filter((d) => d.review_state === "pending");
+export default async function DashboardPage() {
+  const decisions = await listDecisions();
+  const stats = computeStats(decisions);
+  const pending = decisions.filter((d) => d.review_state === "pending");
+  const recent = decisions.slice(0, 6);
+  const activity: Activity[] = decisions.slice(0, 5).map((d) => ({
+    id: d.id,
+    text: `Judged “${d.request.question}” — ${verdictStyles[d.recommendation.verdict].label}`,
+    at: d.created_at,
+  }));
 
   return (
     <div className="space-y-6">
@@ -19,14 +32,27 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Decisions (30d)" value="128" delta={{ value: "+12%", direction: "up" }} tint="blue" />
-        <StatCard label="Pending review" value={String(pending.length)} tint="peach" />
-        <StatCard label="Endorsed" value="64%" delta={{ value: "+4%", direction: "up" }} tint="mint" />
-        <StatCard label="Spend (30d)" value="$42.18" delta={{ value: "-3%", direction: "down" }} tint="lilac" />
+        <StatCard label="Decisions" value={String(stats.total)} tint="blue" />
+        <StatCard label="Pending review" value={String(stats.pending)} tint="peach" />
+        <StatCard label="Endorsed" value={`${stats.endorsedPct}%`} tint="mint" />
+        <StatCard label="Spend" value={formatCurrency(stats.spend)} tint="lilac" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2">
+        <div className="space-y-6 xl:col-span-2">
+          <SectionCard title="Decisions over time">
+            <TrendChart data={stats.trend} />
+          </SectionCard>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <SectionCard title="Verdict mix">
+              <VerdictDonut data={stats.verdictCounts} />
+            </SectionCard>
+            <SectionCard title="By stakes">
+              <StakesBars data={stats.stakesCounts} />
+            </SectionCard>
+          </div>
+
           <SectionCard
             title="Recent decisions"
             action={
@@ -48,7 +74,7 @@ export default function DashboardPage() {
                 </tr>
               </Thead>
               <tbody>
-                {mockDecisions.map((d) => (
+                {recent.map((d) => (
                   <Tr key={d.id}>
                     <Td className="max-w-xs pl-5">
                       <Link
@@ -78,7 +104,7 @@ export default function DashboardPage() {
           </SectionCard>
         </div>
 
-        <RightPanel pendingReviews={pending} activity={mockActivity} />
+        <RightPanel pendingReviews={pending} activity={activity} />
       </div>
     </div>
   );
