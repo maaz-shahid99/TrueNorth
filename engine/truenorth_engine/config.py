@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # (DI-7 / GV-2). Default: existential and executive decisions.
     review_required_tiers: list[StakesTier] = [StakesTier.S1, StakesTier.S2]
 
+    # Google SSO (optional). When google_client_id and truenorth_jwt_secret are both set,
+    # POST /v1/auth/google verifies a Google ID token and issues a TrueNorth session JWT.
+    google_client_id: str = ""
+    truenorth_jwt_secret: str = ""
+    jwt_ttl_seconds: int = 3600
+    sso_admin_emails: list[str] = []
+
     def model_for_tier(self, tier: StakesTier) -> str:
         return {
             StakesTier.S1: self.truenorth_model_s1,

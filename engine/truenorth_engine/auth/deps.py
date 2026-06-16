@@ -12,6 +12,7 @@ from collections.abc import Callable
 from fastapi import Depends, Header, HTTPException
 
 from ..config import get_settings
+from .jwt import verify_engine_jwt
 from .keys import get_keystore
 from .rbac import Permission, Principal
 
@@ -30,10 +31,14 @@ def get_principal(
 ) -> Principal:
     token = _extract_token(authorization, x_api_key)
     if not token:
-        raise HTTPException(status_code=401, detail="Missing API key.")
-    principal = get_keystore(get_settings()).resolve(token)
+        raise HTTPException(status_code=401, detail="Missing credential.")
+    settings = get_settings()
+    # Try the token as a TrueNorth session JWT (Google SSO), then as an API key.
+    principal = verify_engine_jwt(token, settings.truenorth_jwt_secret) or get_keystore(
+        settings
+    ).resolve(token)
     if principal is None:
-        raise HTTPException(status_code=401, detail="Invalid or revoked API key.")
+        raise HTTPException(status_code=401, detail="Invalid or expired credential.")
     return principal
 
 

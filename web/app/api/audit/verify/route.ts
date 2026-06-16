@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { engineConfigured, engineFetch } from "@/lib/engine";
+import { engineFetch, hasEngineCredential } from "@/lib/engine";
 import { mockDecisions } from "@/lib/mock";
 
 // Verify the tenant's audit hash chain (GV-3).
 export async function GET() {
-  if (!engineConfigured()) {
+  if (!(await hasEngineCredential())) {
     return NextResponse.json({
       ok: true,
       entries_checked: mockDecisions.length,

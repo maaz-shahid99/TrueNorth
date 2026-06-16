@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { engineConfigured, engineFetch } from "@/lib/engine";
+import { engineFetch, hasEngineCredential } from "@/lib/engine";
 import { makeDemoDecision } from "@/lib/mock";
 import type { DecisionRequest } from "@/lib/types";
 
@@ -8,7 +8,7 @@ import type { DecisionRequest } from "@/lib/types";
 export async function POST(request: Request) {
   const body = (await request.json()) as Partial<DecisionRequest>;
 
-  if (!engineConfigured()) {
+  if (!(await hasEngineCredential())) {
     return NextResponse.json(makeDemoDecision(body), { status: 201 });
   }
 

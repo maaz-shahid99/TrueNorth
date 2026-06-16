@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { engineConfigured, engineFetch } from "@/lib/engine";
+import { engineFetch, hasEngineCredential } from "@/lib/engine";
 
 // Approve / reject a decision (DI-7 / GV-2). Proxies to the engine; echoes a computed
 // state in demo mode.
@@ -10,7 +10,7 @@ export async function POST(
   const { id } = await params;
   const body = await request.json();
 
-  if (!engineConfigured()) {
+  if (!(await hasEngineCredential())) {
     const state = body.action === "approve" ? "approved" : "rejected";
     return NextResponse.json(
       {

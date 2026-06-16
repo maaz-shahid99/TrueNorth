@@ -8,6 +8,7 @@ export interface Session {
   subject: string;
   tenant: string;
   roles: Role[];
+  engineToken?: string; // per-user TrueNorth JWT from Google SSO (UI-6)
 }
 
 const COOKIE = "tn_session";

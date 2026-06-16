@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { engineConfigured, engineFetch } from "@/lib/engine";
+import { engineFetch, hasEngineCredential } from "@/lib/engine";
 
 // Record an outcome for a decision (DI-8). Echoes back in demo mode.
 export async function POST(
@@ -9,7 +9,7 @@ export async function POST(
   const { id } = await params;
   const body = await request.json();
 
-  if (!engineConfigured()) {
+  if (!(await hasEngineCredential())) {
     return NextResponse.json(
       { decision_id: id, recorded_at: new Date().toISOString(), metrics: {}, ...body },
       { status: 201 },

@@ -20,8 +20,10 @@ Mint keys with `truenorth-admin mint --subject ... --role ...`.
 from __future__ import annotations
 
 from fastapi import Depends, FastAPI, HTTPException
+from pydantic import BaseModel
 
 from .auth.deps import require
+from .auth.jwt import mint_engine_jwt, principal_from_google, verify_google_id_token
 from .auth.rbac import Permission, Principal
 from .config import get_settings
 from .pipeline import evaluate_decision
@@ -44,6 +46,34 @@ app = FastAPI(title="TrueNorth Decision Engine", version="0.1.0")
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+
+class GoogleAuthResponse(BaseModel):
+    token: str
+    principal: Principal
+
+
+@app.post("/v1/auth/google", response_model=GoogleAuthResponse)
+def google_auth(body: GoogleAuthRequest) -> GoogleAuthResponse:
+    settings = get_settings()
+    if not settings.google_client_id or not settings.truenorth_jwt_secret:
+        raise HTTPException(status_code=503, detail="Google SSO is not configured.")
+    info = verify_google_id_token(body.id_token, settings.google_client_id)
+    if info is None or not info.get("email"):
+        raise HTTPException(status_code=401, detail="Invalid Google token.")
+    principal = principal_from_google(info, settings)
+    token = mint_engine_jwt(
+        subject=principal.subject,
+        tenant=principal.tenant_id,
+        roles=principal.roles,
+        secret=settings.truenorth_jwt_secret,
+        ttl_seconds=settings.jwt_ttl_seconds,
+    )
+    return GoogleAuthResponse(token=token, principal=principal)
 
 
 @app.post("/v1/decisions", response_model=DecisionRecord)

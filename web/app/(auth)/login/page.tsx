@@ -12,6 +12,8 @@ export default function LoginPage() {
     redirect("/dashboard");
   }
 
+  const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-app px-4">
       <div className="w-full max-w-sm">
@@ -23,14 +25,26 @@ export default function LoginPage() {
         </div>
         <div className="rounded-2xl border border-line bg-surface p-6 shadow-card">
           <h1 className="text-base font-semibold">Sign in</h1>
-          <p className="mt-1 text-sm text-muted">Dev login — Google SSO arrives next.</p>
+          <p className="mt-1 text-sm text-muted">
+            {googleEnabled ? "Sign in with your Google account." : "Dev login (Google SSO ready)."}
+          </p>
 
-          <button
-            disabled
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-line bg-app px-4 py-2 text-sm text-muted"
-          >
-            Continue with Google (soon)
-          </button>
+          {googleEnabled ? (
+            <a
+              href="/api/auth/google/start"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-app"
+            >
+              Continue with Google
+            </a>
+          ) : (
+            <button
+              disabled
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-line bg-app px-4 py-2 text-sm text-muted"
+              title="Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable"
+            >
+              Continue with Google (configure credentials)
+            </button>
+          )}
 
           <div className="my-4 flex items-center gap-3 text-xs text-muted">
             <span className="h-px flex-1 bg-line" />
