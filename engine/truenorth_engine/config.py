@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     github_token: str = ""
 
+    # Jira Cloud connector (DF-1) for project go/no-go evidence. When base URL + token are
+    # set and the request supplies inputs.jira_project, live issue signals are gathered;
+    # otherwise the connector falls back to requester-supplied project facts.
+    jira_base_url: str = ""
+    jira_email: str = ""
+    jira_token: str = ""
+
     # Where the immutable audit ledger lives. SQLite by default (zero infra); set to a
     # Postgres URL (postgresql+psycopg://...) for a real deployment.
     database_url: str = "sqlite:///./truenorth.db"

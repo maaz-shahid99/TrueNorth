@@ -52,6 +52,10 @@ export const stakesLabel: Record<StakesTier, string> = {
 export const decisionTypeLabel: Record<string, string> = {
   release_go_no_go: "Release go/no-go",
   discount_approval: "Discount approval",
+  hiring_approval: "Hiring approval",
+  vendor_procurement: "Vendor / procurement",
+  budget_spend: "Budget / spend",
+  project_go_no_go: "Project go/no-go",
 };
 
 // Hex values for SVG chart fills (Tailwind classes can't style chart primitives).

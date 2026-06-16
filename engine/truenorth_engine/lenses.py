@@ -41,6 +41,29 @@ APPLICABLE_LENSES: dict[str, list[LensName]] = {
         LensName.CUSTOMER,
         LensName.LEGAL,
     ],
+    "hiring_approval": [
+        LensName.PEOPLE,
+        LensName.FINANCIAL,
+        LensName.STRATEGIC,
+        LensName.LEGAL,
+    ],
+    "vendor_procurement": [
+        LensName.FINANCIAL,
+        LensName.RISK,
+        LensName.LEGAL,
+        LensName.STRATEGIC,
+    ],
+    "budget_spend": [
+        LensName.FINANCIAL,
+        LensName.STRATEGIC,
+        LensName.RISK,
+    ],
+    "project_go_no_go": [
+        LensName.STRATEGIC,
+        LensName.RISK,
+        LensName.FINANCIAL,
+        LensName.CUSTOMER,
+    ],
 }
 DEFAULT_LENSES = [LensName.RISK, LensName.STRATEGIC, LensName.FINANCIAL, LensName.CUSTOMER]
 

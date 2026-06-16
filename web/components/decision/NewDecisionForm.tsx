@@ -8,7 +8,15 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Stepper } from "@/components/ui/Stepper";
 import { cn } from "@/lib/utils";
 
-type DType = "release_go_no_go" | "discount_approval";
+type DType =
+  | "release_go_no_go"
+  | "discount_approval"
+  | "hiring_approval"
+  | "vendor_procurement"
+  | "budget_spend"
+  | "project_go_no_go";
+
+type FactField = { key: string; label: string; placeholder: string };
 
 const typeInfo: Record<DType, { label: string; blurb: string }> = {
   release_go_no_go: {
@@ -19,17 +27,76 @@ const typeInfo: Record<DType, { label: string; blurb: string }> = {
     label: "Discount approval",
     blurb: "Judge a pricing discount from the deal facts you supply.",
   },
+  hiring_approval: {
+    label: "Hiring approval",
+    blurb: "Judge a proposed hire against headcount plan, comp, and team load.",
+  },
+  vendor_procurement: {
+    label: "Vendor / procurement",
+    blurb: "Judge a vendor contract on cost, risk, and security exposure.",
+  },
+  budget_spend: {
+    label: "Budget / spend",
+    blurb: "Judge a spend request against the budget line and expected return.",
+  },
+  project_go_no_go: {
+    label: "Project go/no-go",
+    blurb: "Judge whether to greenlight a project — live Jira signals or a brief you supply.",
+  },
 };
 
-const discountFields: { key: string; label: string; placeholder: string }[] = [
-  { key: "discount_pct", label: "Requested discount (%)", placeholder: "35" },
-  { key: "gross_margin_pct", label: "Resulting gross margin (%)", placeholder: "12" },
-  { key: "deal_value", label: "Deal value (USD)", placeholder: "500000" },
-  { key: "customer_tier", label: "Customer tier", placeholder: "mid-market, non-strategic" },
-  { key: "competitor", label: "Competitive pressure", placeholder: "incumbent renewal" },
-  { key: "contract_term_months", label: "Contract term (months)", placeholder: "12" },
-  { key: "approver_limit_pct", label: "Self-approve limit (%)", placeholder: "15" },
-];
+// Per-type fact fields. Keys must match the engine connectors' recognised inputs.
+const fieldsByType: Record<DType, FactField[]> = {
+  release_go_no_go: [], // uses the GitHub repo field instead
+  discount_approval: [
+    { key: "discount_pct", label: "Requested discount (%)", placeholder: "35" },
+    { key: "gross_margin_pct", label: "Resulting gross margin (%)", placeholder: "12" },
+    { key: "deal_value", label: "Deal value (USD)", placeholder: "500000" },
+    { key: "customer_tier", label: "Customer tier", placeholder: "mid-market, non-strategic" },
+    { key: "competitor", label: "Competitive pressure", placeholder: "incumbent renewal" },
+    { key: "contract_term_months", label: "Contract term (months)", placeholder: "12" },
+    { key: "approver_limit_pct", label: "Self-approve limit (%)", placeholder: "15" },
+  ],
+  hiring_approval: [
+    { key: "role", label: "Role / title", placeholder: "Staff Engineer" },
+    { key: "level", label: "Level / seniority", placeholder: "L6" },
+    { key: "base_salary_usd", label: "Proposed base salary (USD)", placeholder: "210000" },
+    { key: "headcount_plan", label: "In headcount plan?", placeholder: "yes / no" },
+    { key: "team", label: "Hiring team", placeholder: "Platform" },
+    { key: "backfill_or_new", label: "Backfill or net-new", placeholder: "net-new" },
+    { key: "business_justification", label: "Business justification", placeholder: "scaling on-call coverage" },
+    { key: "comp_band_fit", label: "Fit vs comp band", placeholder: "mid-band" },
+  ],
+  vendor_procurement: [
+    { key: "vendor", label: "Vendor name", placeholder: "Acme Analytics" },
+    { key: "annual_cost_usd", label: "Annual cost (USD)", placeholder: "120000" },
+    { key: "contract_term_months", label: "Contract term (months)", placeholder: "24" },
+    { key: "category", label: "Spend category", placeholder: "data / SaaS" },
+    { key: "data_access", label: "Data the vendor accesses", placeholder: "customer PII" },
+    { key: "security_review", label: "Security review status", placeholder: "SOC 2 reviewed" },
+    { key: "alternatives_considered", label: "Alternatives considered", placeholder: "2 others bid" },
+    { key: "lock_in_risk", label: "Switching / lock-in risk", placeholder: "high — proprietary format" },
+  ],
+  budget_spend: [
+    { key: "amount_usd", label: "Requested amount (USD)", placeholder: "50000" },
+    { key: "budget_line", label: "Budget line / cost center", placeholder: "Marketing-Q3" },
+    { key: "remaining_budget_usd", label: "Remaining on the line (USD)", placeholder: "80000" },
+    { key: "period", label: "Period", placeholder: "Q3 FY26" },
+    { key: "category", label: "Category", placeholder: "opex" },
+    { key: "expected_return", label: "Expected return / outcome", placeholder: "12% pipeline lift" },
+    { key: "recurring", label: "One-time or recurring", placeholder: "one-time" },
+  ],
+  project_go_no_go: [
+    { key: "objective", label: "Project objective", placeholder: "Migrate billing to the new platform" },
+    { key: "budget_usd", label: "Budget (USD)", placeholder: "250000" },
+    { key: "timeline_months", label: "Timeline (months)", placeholder: "6" },
+    { key: "team_size", label: "Team size (FTEs)", placeholder: "5" },
+    { key: "dependencies", label: "Key dependencies", placeholder: "payments API freeze" },
+    { key: "success_metric", label: "Primary success metric", placeholder: "0 billing incidents post-cutover" },
+    { key: "risk_summary", label: "Known risks", placeholder: "tight cutover window" },
+    { key: "jira_project", label: "Jira project key (optional)", placeholder: "BILL" },
+  ],
+};
 
 const steps = ["Type", "Details", "Review"];
 
@@ -49,16 +116,16 @@ export function NewDecisionForm() {
     setSubmitting(true);
     setError(null);
     try {
+      const usesRepo = type === "release_go_no_go";
       const body = {
         decision_type: type,
         question,
         context,
         stakes: stakes || null,
-        repo: type === "release_go_no_go" ? repo || null : null,
-        inputs:
-          type === "discount_approval"
-            ? Object.fromEntries(Object.entries(inputs).filter(([, v]) => v.trim()))
-            : {},
+        repo: usesRepo ? repo || null : null,
+        inputs: usesRepo
+          ? {}
+          : Object.fromEntries(Object.entries(inputs).filter(([, v]) => v.trim())),
         options: [],
       };
       const res = await fetch("/api/decisions", {
@@ -130,7 +197,7 @@ export function NewDecisionForm() {
               </Field>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {discountFields.map((f) => (
+                {fieldsByType[type].map((f) => (
                   <Field key={f.key} label={f.label}>
                     <Input
                       value={inputs[f.key] ?? ""}
@@ -150,8 +217,8 @@ export function NewDecisionForm() {
             <ReviewRow k="Decision" v={question || "—"} />
             <ReviewRow k="Stakes" v={stakes || "Auto-classify"} />
             {type === "release_go_no_go" && <ReviewRow k="Repository" v={repo || "—"} />}
-            {type === "discount_approval" &&
-              discountFields
+            {type !== "release_go_no_go" &&
+              fieldsByType[type]
                 .filter((f) => inputs[f.key]?.trim())
                 .map((f) => <ReviewRow key={f.key} k={f.label} v={inputs[f.key]} />)}
             {error && <p className="pt-2 text-sm text-verdict-oppose">{error}</p>}

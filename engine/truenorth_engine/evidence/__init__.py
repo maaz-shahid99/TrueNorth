@@ -11,10 +11,16 @@ from ..schemas import DecisionRequest, EvidencePack
 from .base import Connector
 from .discount import ManualDiscountConnector
 from .github import GitHubReleaseConnector
+from .jira import JiraProjectConnector
+from .manual import budget_connector, hiring_connector, vendor_connector
 
 CONNECTORS: dict[str, Connector] = {
     "release_go_no_go": GitHubReleaseConnector(),
     "discount_approval": ManualDiscountConnector(),
+    "hiring_approval": hiring_connector(),
+    "vendor_procurement": vendor_connector(),
+    "budget_spend": budget_connector(),
+    "project_go_no_go": JiraProjectConnector(),
 }
 
 

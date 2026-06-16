@@ -2,30 +2,74 @@ import { Plug } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/ui/Card";
 
-const connectors = [
+type Status = "Available" | "Live-capable" | "Planned";
+
+const statusClass: Record<Status, string> = {
+  Available: "bg-verdict-endorse-bg text-verdict-endorse",
+  "Live-capable": "bg-brand-50 text-brand-700",
+  Planned: "bg-line text-muted",
+};
+
+const connectors: {
+  decisionType: string;
+  name: string;
+  status: Status;
+  description: string;
+  config: string;
+}[] = [
   {
     decisionType: "Release go/no-go",
     name: "GitHub",
-    status: "Available",
-    statusClass: "bg-verdict-endorse-bg text-verdict-endorse",
+    status: "Live-capable",
     description:
-      "Pulls open bug-labelled issues, recent CI pass rate, and open PRs for the repository on the decision. Supply the repo as owner/name when submitting.",
-    config: "Set GITHUB_TOKEN in the engine environment for private repos.",
+      "Pulls open bug-labelled issues, recent CI pass rate, and open PRs for the repo on the decision. Supply the repo as owner/name when submitting.",
+    config: "Set GITHUB_TOKEN in the engine environment for private repos; public repos work unauthenticated.",
+  },
+  {
+    decisionType: "Project go/no-go",
+    name: "Jira Cloud",
+    status: "Live-capable",
+    description:
+      "Pulls open issues, work in progress, and unresolved blockers for the project. Falls back to the project brief you enter when Jira is not configured.",
+    config:
+      "Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_TOKEN in the engine environment; pass the project key as the Jira project field at submission.",
   },
   {
     decisionType: "Discount approval",
     name: "Manual deal facts",
     status: "Available",
-    statusClass: "bg-verdict-endorse-bg text-verdict-endorse",
     description:
-      "Turns the deal facts you enter (discount %, gross margin, customer tier, etc.) into cited evidence. This is the seam a CRM connector replaces later.",
+      "Turns the deal facts you enter (discount %, gross margin, customer tier, etc.) into cited evidence. The seam a CRM connector replaces later.",
+    config: "No setup required — facts are entered at submission time.",
+  },
+  {
+    decisionType: "Hiring approval",
+    name: "Manual hiring facts",
+    status: "Available",
+    description:
+      "Turns role, level, comp, and headcount-plan facts into cited evidence. The seam an HRIS connector (Workday/BambooHR) replaces later.",
+    config: "No setup required — facts are entered at submission time.",
+  },
+  {
+    decisionType: "Vendor / procurement",
+    name: "Manual procurement facts",
+    status: "Available",
+    description:
+      "Turns vendor cost, term, data-access, and security-review facts into cited evidence. The seam a procurement-system connector replaces later.",
+    config: "No setup required — facts are entered at submission time.",
+  },
+  {
+    decisionType: "Budget / spend",
+    name: "Manual budget facts",
+    status: "Available",
+    description:
+      "Turns amount, budget line, remaining budget, and expected-return facts into cited evidence. The seam an FP&A connector replaces later.",
     config: "No setup required — facts are entered at submission time.",
   },
   {
     decisionType: "Discount approval",
     name: "Salesforce / HubSpot (CRM)",
     status: "Planned",
-    statusClass: "bg-line text-muted",
     description:
       "A future connector that reads opportunity, pricing, and account data directly from the CRM, replacing the manual deal-fact entry.",
     config: "Not yet available.",
@@ -37,7 +81,10 @@ export default function ConnectorsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Connectors</h1>
-        <p className="text-sm text-muted">Evidence sources for each decision type (DF-1).</p>
+        <p className="text-sm text-muted">
+          Evidence sources for each decision type (DF-1). Live-capable connectors gather real
+          signals when configured and degrade gracefully to entered facts otherwise.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -50,7 +97,7 @@ export default function ConnectorsPage() {
                 {c.name}
               </span>
             }
-            action={<Badge className={c.statusClass}>{c.status}</Badge>}
+            action={<Badge className={statusClass[c.status]}>{c.status}</Badge>}
           >
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {c.decisionType}
