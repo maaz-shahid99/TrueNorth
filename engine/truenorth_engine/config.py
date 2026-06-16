@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # Use adaptive thinking on the high-stakes synthesis step.
     synthesis_thinking_min_tier: StakesTier = StakesTier.S2
 
+    # Live model-call resilience (PL-1). The gateway owns its own retry loop, so the
+    # SDK's built-in retries are disabled to avoid compounding backoff.
+    model_timeout_seconds: float = 60.0
+    model_max_retries: int = 3
+    model_retry_base_delay: float = 1.0  # seconds; exponential backoff with jitter
+
     # Stakes tiers that require human sign-off before a decision counts as approved
     # (DI-7 / GV-2). Default: existential and executive decisions.
     review_required_tiers: list[StakesTier] = [StakesTier.S1, StakesTier.S2]

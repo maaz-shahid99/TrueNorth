@@ -27,6 +27,7 @@ from .auth.jwt import mint_engine_jwt, principal_from_google, verify_google_id_t
 from .auth.keys import ApiKeyInfo, get_keystore
 from .auth.rbac import Permission, Principal, Role
 from .config import get_settings
+from .model_gateway import ModelUnavailableError
 from .pipeline import evaluate_decision
 from .review import compute_state
 from .schemas import (
@@ -90,7 +91,11 @@ def create_decision(
         )
     try:
         record = evaluate_decision(request, settings)
+    except ModelUnavailableError as exc:
+        # Transient upstream failure after exhausting retries — caller may retry.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:
+        # Model refusal / unparseable output and other non-transient engine faults.
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     get_store(settings).record_decision(record, principal.tenant_id)
     return record
