@@ -24,7 +24,8 @@ from pydantic import BaseModel
 
 from .auth.deps import require
 from .auth.jwt import mint_engine_jwt, principal_from_google, verify_google_id_token
-from .auth.rbac import Permission, Principal
+from .auth.keys import ApiKeyInfo, get_keystore
+from .auth.rbac import Permission, Principal, Role
 from .config import get_settings
 from .pipeline import evaluate_decision
 from .review import compute_state
@@ -183,3 +184,39 @@ def verify_audit(
     principal: Principal = Depends(require(Permission.AUDIT_VERIFY)),
 ) -> ChainVerification:
     return get_store(get_settings()).verify_chain(principal.tenant_id)
+
+
+# ----- API-key management (admin only, SC-1) -------------------------------------
+
+class KeyMintRequest(BaseModel):
+    subject: str
+    roles: list[Role]
+
+
+class KeyMintResponse(BaseModel):
+    key: str
+    info: ApiKeyInfo
+
+
+@app.get("/v1/keys", response_model=list[ApiKeyInfo])
+def list_keys(principal: Principal = Depends(require(Permission.ADMIN))) -> list[ApiKeyInfo]:
+    return get_keystore(get_settings()).list(principal.tenant_id)
+
+
+@app.post("/v1/keys", response_model=KeyMintResponse)
+def mint_key(
+    body: KeyMintRequest,
+    principal: Principal = Depends(require(Permission.ADMIN)),
+) -> KeyMintResponse:
+    key, info = get_keystore(get_settings()).mint(principal.tenant_id, body.subject, body.roles)
+    return KeyMintResponse(key=key, info=info)
+
+
+@app.delete("/v1/keys/{key_id}")
+def revoke_key(
+    key_id: str,
+    principal: Principal = Depends(require(Permission.ADMIN)),
+) -> dict[str, bool]:
+    if not get_keystore(get_settings()).revoke(key_id, principal.tenant_id):
+        raise HTTPException(status_code=404, detail="No key with that id.")
+    return {"revoked": True}

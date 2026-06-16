@@ -7,7 +7,9 @@ export interface DashStats {
   pending: number;
   endorsedPct: number;
   spend: number;
+  avgConfidence: number;
   verdictCounts: { verdict: Verdict; count: number }[];
+  confidenceByVerdict: { verdict: Verdict; avg: number; count: number }[];
   stakesCounts: { stakes: StakesTier; count: number }[];
   trend: { label: string; count: number }[];
 }
@@ -53,12 +55,25 @@ export function computeStats(decisions: DecisionRecord[]): DashStats {
     if (bucket) bucket.count++;
   }
 
+  const avgConfidence = total
+    ? decisions.reduce((a, d) => a + d.recommendation.confidence, 0) / total
+    : 0;
+  const confidenceByVerdict = VERDICTS.map((v) => {
+    const subset = decisions.filter((d) => d.recommendation.verdict === v);
+    const avg = subset.length
+      ? subset.reduce((a, d) => a + d.recommendation.confidence, 0) / subset.length
+      : 0;
+    return { verdict: v, avg, count: subset.length };
+  });
+
   return {
     total,
     pending,
     endorsedPct,
     spend,
+    avgConfidence,
     verdictCounts,
+    confidenceByVerdict,
     stakesCounts,
     trend: days.map(({ label, count }) => ({ label, count })),
   };

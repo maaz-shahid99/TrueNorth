@@ -69,9 +69,15 @@ def client(monkeypatch, tmp_path):
     keystore = get_keystore(get_settings())
     req_key, _ = keystore.mint("default", "alice", [Role.REQUESTER])
     rev_key, _ = keystore.mint("default", "bob", [Role.REVIEWER])
+    admin_key, _ = keystore.mint("default", "root", [Role.ADMIN])
     other_key, _ = keystore.mint("other", "carol", [Role.REQUESTER])
 
-    yield TestClient(api.app), {"requester": req_key, "reviewer": rev_key, "other": other_key}
+    yield TestClient(api.app), {
+        "requester": req_key,
+        "reviewer": rev_key,
+        "admin": admin_key,
+        "other": other_key,
+    }
 
     get_settings.cache_clear()
     store._engine_for.cache_clear()
@@ -133,3 +139,24 @@ def test_tenant_isolation(client):
     other = tc.get("/v1/decisions", headers=_h(keys["other"]))
     assert other.status_code == 200
     assert other.json() == []
+
+
+def test_key_management_requires_admin(client):
+    tc, keys = client
+    assert tc.get("/v1/keys", headers=_h(keys["requester"])).status_code == 403
+
+    listed = tc.get("/v1/keys", headers=_h(keys["admin"]))
+    assert listed.status_code == 200
+    assert len(listed.json()) >= 1  # default-tenant keys minted in the fixture
+
+    minted = tc.post(
+        "/v1/keys",
+        json={"subject": "svc@acme", "roles": ["viewer"]},
+        headers=_h(keys["admin"]),
+    )
+    assert minted.status_code == 200
+    body = minted.json()
+    assert body["key"].startswith("tn_")
+
+    revoked = tc.delete(f"/v1/keys/{body['info']['id']}", headers=_h(keys["admin"]))
+    assert revoked.status_code == 200

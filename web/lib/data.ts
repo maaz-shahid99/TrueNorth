@@ -2,8 +2,8 @@
 // (per-user SSO JWT or shared dev key); otherwise falls back to bundled fixtures so the UI
 // is fully reviewable offline.
 import { engineFetch, hasEngineCredential } from "./engine";
-import { mockDecisions, sampleDecision } from "./mock";
-import type { DecisionRecord, Outcome, ReviewStatus } from "./types";
+import { mockDecisions, mockKeys, sampleDecision } from "./mock";
+import type { ApiKeyInfo, DecisionRecord, Outcome, ReviewStatus } from "./types";
 
 export async function getDecision(id: string): Promise<DecisionRecord | null> {
   if (!(await hasEngineCredential())) {
@@ -41,4 +41,11 @@ export async function getReview(d: DecisionRecord): Promise<ReviewStatus> {
   const res = await engineFetch(`/v1/decisions/${encodeURIComponent(d.id)}/review`);
   if (!res.ok) return fallback;
   return (await res.json()) as ReviewStatus;
+}
+
+export async function getKeys(): Promise<ApiKeyInfo[]> {
+  if (!(await hasEngineCredential())) return mockKeys;
+  const res = await engineFetch("/v1/keys");
+  if (!res.ok) return []; // e.g. 403 for non-admins
+  return (await res.json()) as ApiKeyInfo[];
 }

@@ -1,18 +1,17 @@
-import { Users } from "lucide-react";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { KeysManager } from "@/components/settings/KeysManager";
+import { getKeys } from "@/lib/data";
 
-export default function MembersPage() {
+export default async function MembersPage() {
+  const keys = await getKeys();
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Members & API keys</h1>
-        <p className="text-sm text-muted">Manage who can access this workspace.</p>
+        <p className="text-sm text-muted">
+          Per-tenant API keys and roles. Admin-only; managed by the engine KeyStore.
+        </p>
       </div>
-      <EmptyState
-        icon={<Users className="h-6 w-6" />}
-        title="Member & key management arrives in UI-7"
-        description="Mint, list, and revoke API keys and roles, backed by the engine KeyStore."
-      />
+      <KeysManager initialKeys={keys} />
     </div>
   );
 }

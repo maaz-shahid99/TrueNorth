@@ -1,6 +1,6 @@
 // Mock data so the shell and pages render without the engine running (UI-1), and a sample
 // DecisionRecord that doubles as the offline fixture for the Decision Detail page (UI-2).
-import type { DecisionRecord, DecisionRequest, StakesTier } from "./types";
+import type { ApiKeyInfo, DecisionRecord, DecisionRequest, StakesTier } from "./types";
 
 export const sampleDecision: DecisionRecord = {
   id: "demo-release-2-4",
@@ -147,6 +147,33 @@ export const mockActivity: Activity[] = [
   { id: "a2", text: "New decision submitted: ship release 2.4", at: new Date(Date.now() - 1000 * 60 * 42).toISOString() },
   { id: "a3", text: "Outcome recorded for “Switch primary cloud vendor”", at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString() },
   { id: "a4", text: "Audit chain verified — 128 entries intact", at: new Date(Date.now() - 1000 * 60 * 60 * 7).toISOString() },
+];
+
+export const mockKeys: ApiKeyInfo[] = [
+  {
+    id: "key-root",
+    tenant_id: "default",
+    subject: "dev@truenorth.local",
+    roles: ["admin"],
+    active: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
+  },
+  {
+    id: "key-ci",
+    tenant_id: "default",
+    subject: "ci-bot@truenorth.local",
+    roles: ["requester"],
+    active: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+  },
+  {
+    id: "key-old",
+    tenant_id: "default",
+    subject: "former-lead@truenorth.local",
+    roles: ["reviewer"],
+    active: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
+  },
 ];
 
 // Synthesize a plausible record for the New Decision flow when no engine is configured,

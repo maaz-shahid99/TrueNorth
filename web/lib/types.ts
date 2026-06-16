@@ -142,6 +142,15 @@ export interface ChainVerification {
   detail: string;
 }
 
+export interface ApiKeyInfo {
+  id: string;
+  tenant_id: string;
+  subject: string;
+  roles: string[];
+  active: boolean;
+  created_at: string;
+}
+
 export const VERDICTS: Verdict[] = [
   "Endorse",
   "Endorse-with-conditions",
