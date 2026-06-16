@@ -2,7 +2,7 @@
 // otherwise falls back to the bundled fixtures so the UI is fully reviewable offline.
 import { engineConfigured, engineFetch } from "./engine";
 import { mockDecisions, sampleDecision } from "./mock";
-import type { DecisionRecord, Outcome } from "./types";
+import type { DecisionRecord, Outcome, ReviewStatus } from "./types";
 
 export async function getDecision(id: string): Promise<DecisionRecord | null> {
   if (!engineConfigured()) {
@@ -27,4 +27,17 @@ export async function getOutcomes(id: string): Promise<Outcome[]> {
   const res = await engineFetch(`/v1/decisions/${encodeURIComponent(id)}/outcomes`);
   if (!res.ok) return [];
   return (await res.json()) as Outcome[];
+}
+
+export async function getReview(d: DecisionRecord): Promise<ReviewStatus> {
+  const fallback: ReviewStatus = {
+    decision_id: d.id,
+    required: d.review_required,
+    state: d.review_state,
+    history: [],
+  };
+  if (!engineConfigured()) return fallback;
+  const res = await engineFetch(`/v1/decisions/${encodeURIComponent(d.id)}/review`);
+  if (!res.ok) return fallback;
+  return (await res.json()) as ReviewStatus;
 }

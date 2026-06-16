@@ -11,7 +11,7 @@ import { ReviewPanel } from "@/components/decision/ReviewPanel";
 import { VerdictBanner } from "@/components/decision/VerdictBanner";
 import { Badge, ReviewPill, StakesPill } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/ui/Card";
-import { getDecision, getOutcomes } from "@/lib/data";
+import { getDecision, getOutcomes, getReview } from "@/lib/data";
 import { formatCurrency, formatDateTime, formatTokens } from "@/lib/format";
 import { decisionTypeLabel } from "@/lib/verdict";
 
@@ -24,6 +24,7 @@ export default async function DecisionDetailPage({
   const d = await getDecision(id);
   if (!d) notFound();
   const outcomes = await getOutcomes(d.id);
+  const review = await getReview(d);
 
   const typeLabel = decisionTypeLabel[d.request.decision_type] ?? d.request.decision_type;
 
@@ -65,7 +66,12 @@ export default async function DecisionDetailPage({
         </div>
 
         <div className="space-y-6">
-          <ReviewPanel decision={d} />
+          <ReviewPanel
+            decisionId={d.id}
+            required={review.required}
+            initialState={review.state}
+            initialHistory={review.history}
+          />
           <OutcomePanel decisionId={d.id} initialOutcomes={outcomes} />
           <SectionCard title="Details">
             <dl className="space-y-2.5 text-sm">
