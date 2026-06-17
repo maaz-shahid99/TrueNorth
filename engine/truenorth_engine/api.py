@@ -28,14 +28,16 @@ from .auth.keys import ApiKeyInfo, get_keystore
 from .auth.ratelimit import enforce_rate_limit
 from .auth.rbac import Permission, Principal, Role
 from .config import get_settings
-from .model_gateway import ModelUnavailableError
 from .goals import gather_goals
+from .meetings import extract_decisions
+from .model_gateway import ModelGateway, ModelUnavailableError
 from .pipeline import evaluate_decision
 from .review import compute_state
 from .schemas import (
     ChainVerification,
     DecisionRecord,
     DecisionRequest,
+    ExtractedDecision,
     Goal,
     GoalRequest,
     Outcome,
@@ -267,3 +269,38 @@ def archive_goal(
     if not get_store(get_settings()).archive_goal(goal_id, principal.tenant_id):
         raise HTTPException(status_code=404, detail="No goal with that id.")
     return {"archived": True}
+
+
+# ----- Meeting intelligence (MI-2: decision extraction) --------------------------
+
+class MeetingExtractRequest(BaseModel):
+    transcript: str
+    title: str = ""
+
+
+class MeetingExtractResponse(BaseModel):
+    summary: str = ""
+    decisions: list[ExtractedDecision] = []
+
+
+@app.post("/v1/meetings/extract", response_model=MeetingExtractResponse)
+def extract_meeting(
+    body: MeetingExtractRequest,
+    principal: Principal = Depends(require(Permission.DECISION_CREATE)),
+) -> MeetingExtractResponse:
+    """Extract candidate decisions from a transcript (MI-2). Proposes only — never judges."""
+    settings = get_settings()
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY is not configured; the engine cannot read transcripts.",
+        )
+    if not body.transcript.strip():
+        raise HTTPException(status_code=422, detail="Transcript is empty.")
+    try:
+        result = extract_decisions(ModelGateway(settings), body.transcript, title=body.title)
+    except ModelUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return MeetingExtractResponse(summary=result.summary, decisions=result.decisions)

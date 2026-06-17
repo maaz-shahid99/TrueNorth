@@ -134,6 +134,20 @@ export interface GoalAlignment {
   conflicts: GoalLink[];
 }
 
+export interface ExtractedDecision {
+  question: string;
+  decision_type: string;
+  owner: string;
+  deadline: string;
+  context: string;
+  dissent: string;
+}
+
+export interface MeetingExtraction {
+  summary: string;
+  decisions: ExtractedDecision[];
+}
+
 export interface DecisionRecord {
   id: string;
   request: DecisionRequest;

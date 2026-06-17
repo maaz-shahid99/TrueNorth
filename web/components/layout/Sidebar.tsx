@@ -6,6 +6,7 @@ import {
   BarChart3,
   Compass,
   FileCheck2,
+  FileText,
   History,
   LayoutDashboard,
   Plug,
@@ -29,6 +30,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/decisions/new", label: "New decision", icon: PlusCircle },
+      { href: "/decisions/from-meeting", label: "From meeting", icon: FileText },
       { href: "/decisions", label: "History", icon: History },
     ],
   },
@@ -58,7 +60,9 @@ function isActive(pathname: string, href: string): boolean {
   if (href === "/decisions") {
     return (
       pathname === "/decisions" ||
-      (pathname.startsWith("/decisions/") && !pathname.startsWith("/decisions/new"))
+      (pathname.startsWith("/decisions/") &&
+        !pathname.startsWith("/decisions/new") &&
+        !pathname.startsWith("/decisions/from-meeting"))
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);

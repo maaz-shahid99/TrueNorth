@@ -307,3 +307,27 @@ class ReviewStatus(BaseModel):
     required: bool
     state: ReviewState
     history: list[ReviewAction] = Field(default_factory=list)
+
+
+# ----- Meeting intelligence (MI-2: decision & commitment extraction) --------------
+
+class ExtractedDecision(BaseModel):
+    """One candidate decision lifted from a meeting transcript, for a human to confirm."""
+
+    question: str = Field(description="The decision phrased as a question, ready to judge.")
+    decision_type: str = Field(
+        default="other",
+        description="Best-guess type: release_go_no_go | discount_approval | hiring_approval "
+        "| vendor_procurement | budget_spend | project_go_no_go | other.",
+    )
+    owner: str = Field(default="", description="Who owns the decision / action, if stated.")
+    deadline: str = Field(default="", description="Stated deadline or timeframe, if any.")
+    context: str = Field(default="", description="Short context drawn from the discussion.")
+    dissent: str = Field(default="", description="Recorded disagreement or concern, if any.")
+
+
+class MeetingExtraction(BaseModel):
+    """Structured-output target for the extraction step (MI-2)."""
+
+    summary: str = Field(default="", description="One or two sentences summarizing the meeting.")
+    decisions: list[ExtractedDecision] = Field(default_factory=list)

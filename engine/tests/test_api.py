@@ -188,3 +188,37 @@ def test_goal_management(client):
     archived = tc.delete(f"/v1/goals/{goal_id}", headers=_h(keys["admin"]))
     assert archived.status_code == 200
     assert all(g["id"] != goal_id for g in tc.get("/v1/goals", headers=_h(keys["admin"])).json())
+
+
+def test_meeting_extraction(client, monkeypatch):
+    tc, keys = client
+    import truenorth_engine.api as api
+    from truenorth_engine.schemas import ExtractedDecision, MeetingExtraction
+
+    monkeypatch.setattr(
+        api,
+        "extract_decisions",
+        lambda gateway, transcript, title="": MeetingExtraction(
+            summary="s",
+            decisions=[ExtractedDecision(question="Ship 2.4?", decision_type="release_go_no_go")],
+        ),
+    )
+
+    ok = tc.post(
+        "/v1/meetings/extract",
+        json={"transcript": "We agreed to ship 2.4 tonight."},
+        headers=_h(keys["requester"]),
+    )
+    assert ok.status_code == 200
+    assert ok.json()["decisions"][0]["question"] == "Ship 2.4?"
+
+    # Empty transcript is rejected.
+    assert (
+        tc.post("/v1/meetings/extract", json={"transcript": "  "}, headers=_h(keys["requester"])).status_code
+        == 422
+    )
+    # Extraction proposes decisions, so it needs decision:create — a reviewer is forbidden.
+    assert (
+        tc.post("/v1/meetings/extract", json={"transcript": "x"}, headers=_h(keys["reviewer"])).status_code
+        == 403
+    )
