@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     model_max_retries: int = 3
     model_retry_base_delay: float = 1.0  # seconds; exponential backoff with jitter
 
+    # Per-principal rate limit on the judgment endpoint, requests/minute (0 disables).
+    rate_limit_per_minute: int = 60
+
     # Stakes tiers that require human sign-off before a decision counts as approved
     # (DI-7 / GV-2). Default: existential and executive decisions.
     review_required_tiers: list[StakesTier] = [StakesTier.S1, StakesTier.S2]

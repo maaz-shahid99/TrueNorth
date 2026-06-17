@@ -16,9 +16,15 @@ export async function getDecision(id: string): Promise<DecisionRecord | null> {
   return (await res.json()) as DecisionRecord;
 }
 
-export async function listDecisions(): Promise<DecisionRecord[]> {
-  if (!(await hasEngineCredential())) return mockDecisions;
-  const res = await engineFetch("/v1/decisions?limit=100");
+// List decisions. Defaults to a large page so the dashboard/analytics/reviews/audit
+// aggregations see the full set; the history page passes explicit limit/offset to paginate.
+export async function listDecisions(
+  opts: { limit?: number; offset?: number } = {},
+): Promise<DecisionRecord[]> {
+  const limit = opts.limit ?? 100;
+  const offset = opts.offset ?? 0;
+  if (!(await hasEngineCredential())) return mockDecisions.slice(offset, offset + limit);
+  const res = await engineFetch(`/v1/decisions?limit=${limit}&offset=${offset}`);
   if (!res.ok) throw new Error(`Engine returned ${res.status} listing decisions`);
   return (await res.json()) as DecisionRecord[];
 }

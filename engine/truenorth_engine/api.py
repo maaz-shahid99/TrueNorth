@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from .auth.deps import require
 from .auth.jwt import mint_engine_jwt, principal_from_google, verify_google_id_token
 from .auth.keys import ApiKeyInfo, get_keystore
+from .auth.ratelimit import enforce_rate_limit
 from .auth.rbac import Permission, Principal, Role
 from .config import get_settings
 from .model_gateway import ModelUnavailableError
@@ -78,7 +79,11 @@ def google_auth(body: GoogleAuthRequest) -> GoogleAuthResponse:
     return GoogleAuthResponse(token=token, principal=principal)
 
 
-@app.post("/v1/decisions", response_model=DecisionRecord)
+@app.post(
+    "/v1/decisions",
+    response_model=DecisionRecord,
+    dependencies=[Depends(enforce_rate_limit)],
+)
 def create_decision(
     request: DecisionRequest,
     principal: Principal = Depends(require(Permission.DECISION_CREATE)),
