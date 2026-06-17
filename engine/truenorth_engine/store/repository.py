@@ -13,7 +13,15 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from ..schemas import ChainVerification, DecisionRecord, Outcome, ReviewAction
+from ..precedent import rank_precedents, summarize_outcomes
+from ..schemas import (
+    ChainVerification,
+    DecisionRecord,
+    DecisionRequest,
+    Outcome,
+    Precedent,
+    ReviewAction,
+)
 from .audit import GENESIS, canonical_json, compute_hash
 from .models import AuditEntry
 
@@ -124,6 +132,28 @@ class DecisionStore:
                 .all()
             )
             return [DecisionRecord.model_validate_json(r.payload) for r in rows]
+
+    def find_precedents(
+        self,
+        request: DecisionRequest,
+        tenant_id: str = "default",
+        *,
+        limit: int = 3,
+        scan: int = 100,
+    ) -> list[Precedent]:
+        """Surface the most similar past decisions (with their outcomes) for a new request.
+
+        Scans the tenant's recent decisions, ranks them lexically, and fills the recorded
+        outcome only for the few that are returned (KG / DI-2 institutional memory).
+        """
+        candidates = self.list_decisions(tenant_id=tenant_id, limit=scan)
+        precedents = rank_precedents(request, candidates, limit=limit)
+        return [
+            p.model_copy(
+                update={"outcome_summary": summarize_outcomes(self.get_outcomes(p.decision_id, tenant_id))}
+            )
+            for p in precedents
+        ]
 
     def get_outcomes(self, decision_id: str, tenant_id: str = "default") -> list[Outcome]:
         with self._sf() as session:

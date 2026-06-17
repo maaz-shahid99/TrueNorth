@@ -94,15 +94,18 @@ def create_decision(
             status_code=503,
             detail="ANTHROPIC_API_KEY is not configured; the engine cannot judge decisions.",
         )
+    store = get_store(settings)
+    # Surface similar past decisions (institutional memory) for the judge to weigh (DI-2/KG).
+    precedents = store.find_precedents(request, principal.tenant_id)
     try:
-        record = evaluate_decision(request, settings)
+        record = evaluate_decision(request, settings, precedents=precedents)
     except ModelUnavailableError as exc:
         # Transient upstream failure after exhausting retries — caller may retry.
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:
         # Model refusal / unparseable output and other non-transient engine faults.
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    get_store(settings).record_decision(record, principal.tenant_id)
+    store.record_decision(record, principal.tenant_id)
     return record
 
 

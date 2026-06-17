@@ -81,7 +81,9 @@ def rate_limited_client(monkeypatch, tmp_path):
         )
 
     _limiter.reset()
-    monkeypatch.setattr(api, "evaluate_decision", lambda request, settings: _fake_record(request))
+    monkeypatch.setattr(
+        api, "evaluate_decision", lambda request, settings, **kwargs: _fake_record(request)
+    )
 
     key, _ = get_keystore(get_settings()).mint("default", "alice", [Role.REQUESTER])
     yield TestClient(api.app), key

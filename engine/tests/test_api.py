@@ -61,7 +61,9 @@ def client(monkeypatch, tmp_path):
 
     import truenorth_engine.api as api
 
-    monkeypatch.setattr(api, "evaluate_decision", lambda request, settings: _fake_record(request))
+    monkeypatch.setattr(
+        api, "evaluate_decision", lambda request, settings, **kwargs: _fake_record(request)
+    )
 
     from truenorth_engine.auth.keys import get_keystore
     from truenorth_engine.auth.rbac import Role

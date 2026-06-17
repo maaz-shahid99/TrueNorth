@@ -7,6 +7,7 @@ import { EvidenceList } from "@/components/decision/EvidenceList";
 import { LensCard } from "@/components/decision/LensCard";
 import { MinorityReport } from "@/components/decision/MinorityReport";
 import { OutcomePanel } from "@/components/decision/OutcomePanel";
+import { PrecedentPanel } from "@/components/decision/PrecedentPanel";
 import { ReviewPanel } from "@/components/decision/ReviewPanel";
 import { VerdictBanner } from "@/components/decision/VerdictBanner";
 import { Badge, ReviewPill, StakesPill } from "@/components/ui/Badge";
@@ -63,6 +64,7 @@ export default async function DecisionDetailPage({
           </div>
           <DevilsAdvocatePanel devil={d.devils_advocate} />
           <EvidenceList evidence={d.evidence} />
+          <PrecedentPanel precedents={d.precedents ?? []} />
         </div>
 
         <div className="space-y-6">

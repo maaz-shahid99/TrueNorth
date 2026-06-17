@@ -21,6 +21,7 @@ from .schemas import (
     DecisionRequest,
     DevilsAdvocate,
     EvidencePack,
+    Precedent,
     Recommendation,
     ReviewState,
     StakesTier,
@@ -74,7 +75,22 @@ def _run_devils_advocate(gateway, request, evidence, lenses, tier) -> DevilsAdvo
     )
 
 
-def _synthesize(gateway, request, evidence, lenses, devil, tier, settings) -> Recommendation:
+def _precedent_block(precedents: list[Precedent]) -> str:
+    if not precedents:
+        return ""
+    lines = []
+    for p in precedents:
+        outcome = f" — outcome {p.outcome_summary}" if p.outcome_summary else " — no outcome recorded"
+        lines.append(
+            f'- [{p.verdict.value}] "{p.question}" (similarity {p.similarity:.2f}){outcome}'
+        )
+    return (
+        "\n\nSimilar past decisions (institutional memory — weigh how they turned out, "
+        "do not just copy them):\n" + "\n".join(lines)
+    )
+
+
+def _synthesize(gateway, request, evidence, lenses, devil, tier, settings, precedents) -> Recommendation:
     lens_summary = "\n".join(
         f"- {sl.lens.value} (conf {sl.assessment.confidence:.2f}): "
         f"{sl.assessment.leaning.value} — {sl.assessment.rationale}"
@@ -89,7 +105,8 @@ def _synthesize(gateway, request, evidence, lenses, devil, tier, settings) -> Re
             f"Evidence sufficiency: {evidence.sufficiency}\n\n"
             f"Independent lens assessments:\n{lens_summary}\n\n"
             f"Devil's advocate counter-case: {devil.counter_case}\n"
-            f"Flagged biases: {', '.join(devil.bias_flags) or 'none'}\n\n"
+            f"Flagged biases: {', '.join(devil.bias_flags) or 'none'}"
+            f"{_precedent_block(precedents)}\n\n"
             f"Synthesize ONE verdict on the canonical scale. Cite the lenses that drove it. "
             f"If positive but contingent, use Endorse-with-conditions and give specific, "
             f"checkable conditions. Set confidence honestly — lower it when evidence is thin "
@@ -113,15 +130,19 @@ def evaluate_decision(
     *,
     gateway: ModelGateway | None = None,
     evidence: EvidencePack | None = None,
+    precedents: list[Precedent] | None = None,
 ) -> DecisionRecord:
     """Run the full pipeline and return the auditable decision record.
 
     `gateway` and `evidence` may be injected for deterministic evaluation (PL-4); when
     omitted the engine builds a real model gateway and gathers evidence via connectors.
+    `precedents` (similar past decisions) are shown to the synthesis step and recorded on
+    the result; when omitted, the judge runs without institutional memory (e.g. the CLI).
     """
     settings = settings or get_settings()
     telemetry = Telemetry()
     gateway = gateway or ModelGateway(settings, telemetry=telemetry)
+    precedents = precedents or []
 
     if not request.options:
         request.options = ["Proceed", "Do nothing"]
@@ -132,7 +153,9 @@ def evaluate_decision(
         evidence = _gather_evidence(request, settings)
     lenses = run_lenses(gateway, request, evidence, tier)
     devil = _run_devils_advocate(gateway, request, evidence, lenses, tier)
-    recommendation = _synthesize(gateway, request, evidence, lenses, devil, tier, settings)
+    recommendation = _synthesize(
+        gateway, request, evidence, lenses, devil, tier, settings, precedents
+    )
 
     needs_review = review_required(tier, settings)
     return DecisionRecord(
@@ -145,5 +168,6 @@ def evaluate_decision(
         recommendation=recommendation,
         review_required=needs_review,
         review_state=ReviewState.PENDING if needs_review else ReviewState.NOT_REQUIRED,
+        precedents=precedents,
         usage=telemetry.summary(),
     )

@@ -94,6 +94,17 @@ export interface UsageSummary {
   total_latency_ms: number;
 }
 
+export interface Precedent {
+  decision_id: string;
+  question: string;
+  decision_type: string;
+  verdict: Verdict;
+  stakes: StakesTier;
+  created_at: string;
+  similarity: number; // 0..1
+  outcome_summary: string;
+}
+
 export interface DecisionRecord {
   id: string;
   request: DecisionRequest;
@@ -105,6 +116,7 @@ export interface DecisionRecord {
   recommendation: Recommendation;
   review_required: boolean;
   review_state: ReviewState;
+  precedents?: Precedent[];
   usage: UsageSummary;
   created_at: string;
   engine_version: string;

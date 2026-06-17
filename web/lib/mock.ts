@@ -97,6 +97,28 @@ export const sampleDecision: DecisionRecord = {
   },
   review_required: true,
   review_state: "pending",
+  precedents: [
+    {
+      decision_id: "d-release-2-5",
+      question: "Ship release 2.5 after a clean QA cycle?",
+      decision_type: "release_go_no_go",
+      verdict: "Endorse",
+      stakes: "S3",
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
+      similarity: 0.46,
+      outcome_summary: "success: shipped with no incidents after a staged rollout",
+    },
+    {
+      decision_id: "d-release-risky",
+      question: "Ship release 2.2 the night before a board demo?",
+      decision_type: "release_go_no_go",
+      verdict: "Oppose",
+      stakes: "S2",
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 95).toISOString(),
+      similarity: 0.39,
+      outcome_summary: "miss: a Sev1 surfaced during the demo when shipped anyway",
+    },
+  ],
   usage: {
     calls: [],
     total_input_tokens: 18420,

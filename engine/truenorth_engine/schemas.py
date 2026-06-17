@@ -157,6 +157,23 @@ class UsageSummary(BaseModel):
     total_latency_ms: int = 0
 
 
+# ----- Institutional memory / precedent (KG, deepens DI-2) -----------------------
+
+class Precedent(BaseModel):
+    """A similar past decision surfaced for the current one, with how it turned out."""
+
+    decision_id: str
+    question: str
+    decision_type: str
+    verdict: Verdict
+    stakes: StakesTier
+    created_at: datetime
+    similarity: float = Field(ge=0.0, le=1.0, description="0–1 lexical similarity score.")
+    outcome_summary: str = Field(
+        default="", description="Short summary of the recorded outcome, if any."
+    )
+
+
 # ----- Full decision record (the audit artifact, GV-3) ---------------------------
 
 class DecisionRecord(BaseModel):
@@ -175,6 +192,10 @@ class DecisionRecord(BaseModel):
         default=False, description="Whether stakes require human sign-off (DI-7 / GV-2)."
     )
     review_state: ReviewState = ReviewState.NOT_REQUIRED
+    precedents: list[Precedent] = Field(
+        default_factory=list,
+        description="Similar past decisions the judge was shown (KG / DI-2 institutional memory).",
+    )
     usage: UsageSummary = Field(default_factory=UsageSummary)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     engine_version: str = "0.1.0"
