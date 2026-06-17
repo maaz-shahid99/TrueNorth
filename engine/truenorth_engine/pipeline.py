@@ -21,6 +21,8 @@ from .schemas import (
     DecisionRequest,
     DevilsAdvocate,
     EvidencePack,
+    Goal,
+    GoalAlignment,
     Precedent,
     Recommendation,
     ReviewState,
@@ -75,6 +77,43 @@ def _run_devils_advocate(gateway, request, evidence, lenses, tier) -> DevilsAdvo
     )
 
 
+def _assess_alignment(gateway, request, goals: list[Goal], tier) -> GoalAlignment | None:
+    """Judge the decision against active goals (GA-4). Returns None when there are no goals."""
+    if not goals:
+        return None
+    goal_lines = "\n".join(
+        f"- [{g.id}] ({g.level.value}) {g.title}" + (f" — {g.description}" if g.description else "")
+        for g in goals
+    )
+    return gateway.structured(
+        tier=tier,
+        instruction=(
+            f"Decision: {request.question}\nContext: {request.context or '(none)'}\n\n"
+            f"Active organizational goals:\n{goal_lines}\n\n"
+            f"Judge how this decision aligns with these goals. For each goal it clearly "
+            f"advances or conflicts with, add a GoalLink with the goal_id and exact title "
+            f"copied from the list above, relation 'advances' or 'conflicts', and a brief "
+            f"note. Omit goals it neither helps nor hurts. Give an overall alignment score in "
+            f"[0,1] (1 = strongly advances strategy, 0 = directly contradicts it) and a "
+            f"one-sentence rationale."
+        ),
+        output_format=GoalAlignment,
+        max_tokens=1200,
+        step="alignment",
+    )
+
+
+def _alignment_block(alignment: GoalAlignment | None) -> str:
+    if alignment is None:
+        return ""
+    parts = [f"\n\nStrategic alignment (score {alignment.score:.2f}): {alignment.rationale}"]
+    if alignment.advances:
+        parts.append("Advances goals: " + "; ".join(link.title for link in alignment.advances))
+    if alignment.conflicts:
+        parts.append("Conflicts with goals: " + "; ".join(link.title for link in alignment.conflicts))
+    return "\n".join(parts)
+
+
 def _precedent_block(precedents: list[Precedent]) -> str:
     if not precedents:
         return ""
@@ -90,7 +129,9 @@ def _precedent_block(precedents: list[Precedent]) -> str:
     )
 
 
-def _synthesize(gateway, request, evidence, lenses, devil, tier, settings, precedents) -> Recommendation:
+def _synthesize(
+    gateway, request, evidence, lenses, devil, tier, settings, precedents, alignment
+) -> Recommendation:
     lens_summary = "\n".join(
         f"- {sl.lens.value} (conf {sl.assessment.confidence:.2f}): "
         f"{sl.assessment.leaning.value} — {sl.assessment.rationale}"
@@ -106,6 +147,7 @@ def _synthesize(gateway, request, evidence, lenses, devil, tier, settings, prece
             f"Independent lens assessments:\n{lens_summary}\n\n"
             f"Devil's advocate counter-case: {devil.counter_case}\n"
             f"Flagged biases: {', '.join(devil.bias_flags) or 'none'}"
+            f"{_alignment_block(alignment)}"
             f"{_precedent_block(precedents)}\n\n"
             f"Synthesize ONE verdict on the canonical scale. Cite the lenses that drove it. "
             f"If positive but contingent, use Endorse-with-conditions and give specific, "
@@ -131,18 +173,21 @@ def evaluate_decision(
     gateway: ModelGateway | None = None,
     evidence: EvidencePack | None = None,
     precedents: list[Precedent] | None = None,
+    goals: list[Goal] | None = None,
 ) -> DecisionRecord:
     """Run the full pipeline and return the auditable decision record.
 
     `gateway` and `evidence` may be injected for deterministic evaluation (PL-4); when
     omitted the engine builds a real model gateway and gathers evidence via connectors.
     `precedents` (similar past decisions) are shown to the synthesis step and recorded on
-    the result; when omitted, the judge runs without institutional memory (e.g. the CLI).
+    the result. `goals` (active OKRs) drive a dedicated alignment step whose result is shown
+    to synthesis and recorded; with no goals the step is skipped (e.g. the CLI / golden eval).
     """
     settings = settings or get_settings()
     telemetry = Telemetry()
     gateway = gateway or ModelGateway(settings, telemetry=telemetry)
     precedents = precedents or []
+    goals = goals or []
 
     if not request.options:
         request.options = ["Proceed", "Do nothing"]
@@ -153,8 +198,9 @@ def evaluate_decision(
         evidence = _gather_evidence(request, settings)
     lenses = run_lenses(gateway, request, evidence, tier)
     devil = _run_devils_advocate(gateway, request, evidence, lenses, tier)
+    alignment = _assess_alignment(gateway, request, goals, tier)
     recommendation = _synthesize(
-        gateway, request, evidence, lenses, devil, tier, settings, precedents
+        gateway, request, evidence, lenses, devil, tier, settings, precedents, alignment
     )
 
     needs_review = review_required(tier, settings)
@@ -169,5 +215,6 @@ def evaluate_decision(
         review_required=needs_review,
         review_state=ReviewState.PENDING if needs_review else ReviewState.NOT_REQUIRED,
         precedents=precedents,
+        alignment=alignment,
         usage=telemetry.summary(),
     )

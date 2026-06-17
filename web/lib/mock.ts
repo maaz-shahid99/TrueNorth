@@ -1,6 +1,6 @@
 // Mock data so the shell and pages render without the engine running (UI-1), and a sample
 // DecisionRecord that doubles as the offline fixture for the Decision Detail page (UI-2).
-import type { ApiKeyInfo, DecisionRecord, DecisionRequest, StakesTier } from "./types";
+import type { ApiKeyInfo, DecisionRecord, DecisionRequest, Goal, StakesTier } from "./types";
 
 export const sampleDecision: DecisionRecord = {
   id: "demo-release-2-4",
@@ -119,6 +119,27 @@ export const sampleDecision: DecisionRecord = {
       outcome_summary: "miss: a Sev1 surfaced during the demo when shipped anyway",
     },
   ],
+  alignment: {
+    score: 0.45,
+    rationale:
+      "Shipping for the keynote advances the launch goal but pulls against the reliability goal given the weak readiness signals.",
+    advances: [
+      {
+        goal_id: "g-launch",
+        title: "Land the Q3 platform launch on schedule",
+        relation: "advances",
+        note: "Hitting the keynote is a direct contribution to the launch goal.",
+      },
+    ],
+    conflicts: [
+      {
+        goal_id: "g-reliability",
+        title: "Hold 99.9% uptime with zero Sev1 incidents",
+        relation: "conflicts",
+        note: "A 55% CI pass rate and 37 open bugs put the reliability goal at risk.",
+      },
+    ],
+  },
   usage: {
     calls: [],
     total_input_tokens: 18420,
@@ -195,6 +216,45 @@ export const mockKeys: ApiKeyInfo[] = [
     roles: ["reviewer"],
     active: false,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
+  },
+];
+
+export const mockGoals: Goal[] = [
+  {
+    id: "g-launch",
+    title: "Land the Q3 platform launch on schedule",
+    description: "Ship the new dashboard and pricing service to GA by the end of Q3.",
+    level: "board",
+    owner: "CEO",
+    parent_id: null,
+    metric: "GA by Sep 30",
+    status: "active",
+    source: "manual",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60).toISOString(),
+  },
+  {
+    id: "g-reliability",
+    title: "Hold 99.9% uptime with zero Sev1 incidents",
+    description: "Protect platform reliability through the launch period.",
+    level: "department",
+    owner: "VP Engineering",
+    parent_id: "g-launch",
+    metric: "≤ 0 Sev1 / quarter",
+    status: "active",
+    source: "manual",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString(),
+  },
+  {
+    id: "g-margin",
+    title: "Improve gross margin to 75%",
+    description: "Grow margin via pricing discipline and infra efficiency.",
+    level: "board",
+    owner: "CFO",
+    parent_id: null,
+    metric: "75% GM by FY-end",
+    status: "active",
+    source: "manual",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
   },
 ];
 

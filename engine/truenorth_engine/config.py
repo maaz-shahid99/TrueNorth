@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     jira_base_url: str = ""
     jira_email: str = ""
     jira_token: str = ""
+    # Optional JQL selecting the issues that represent strategic goals/OKRs (GA-1). When set
+    # alongside the Jira credentials, those issues are pulled as goals for alignment scoring.
+    jira_goal_jql: str = ""
 
     # Where the immutable audit ledger lives. SQLite by default (zero infra); set to a
     # Postgres URL (postgresql+psycopg://...) for a real deployment.

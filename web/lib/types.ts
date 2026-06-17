@@ -105,6 +105,35 @@ export interface Precedent {
   outcome_summary: string;
 }
 
+export type GoalLevel = "board" | "department" | "team";
+
+export interface Goal {
+  id: string;
+  title: string;
+  description: string;
+  level: GoalLevel;
+  owner: string;
+  parent_id: string | null;
+  metric: string;
+  status: "active" | "archived";
+  source: string;
+  created_at: string;
+}
+
+export interface GoalLink {
+  goal_id: string;
+  title: string;
+  relation: "advances" | "conflicts" | "neutral";
+  note: string;
+}
+
+export interface GoalAlignment {
+  score: number; // 0..1
+  rationale: string;
+  advances: GoalLink[];
+  conflicts: GoalLink[];
+}
+
 export interface DecisionRecord {
   id: string;
   request: DecisionRequest;
@@ -117,6 +146,7 @@ export interface DecisionRecord {
   review_required: boolean;
   review_state: ReviewState;
   precedents?: Precedent[];
+  alignment?: GoalAlignment | null;
   usage: UsageSummary;
   created_at: string;
   engine_version: string;

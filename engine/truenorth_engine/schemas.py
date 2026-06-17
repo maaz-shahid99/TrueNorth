@@ -174,6 +174,58 @@ class Precedent(BaseModel):
     )
 
 
+# ----- Goals & strategy alignment (GA) -------------------------------------------
+
+class GoalLevel(str, Enum):
+    BOARD = "board"  # board / company-level objective
+    DEPARTMENT = "department"  # departmental OKR
+    TEAM = "team"  # team-level goal
+
+
+class Goal(BaseModel):
+    """A strategic goal / OKR the org is pursuing (board -> department -> team cascade)."""
+
+    id: str = Field(default_factory=lambda: uuid4().hex[:12])
+    title: str
+    description: str = ""
+    level: GoalLevel = GoalLevel.DEPARTMENT
+    owner: str = ""
+    parent_id: str | None = Field(default=None, description="The higher-level goal this rolls up to.")
+    metric: str = Field(default="", description="How progress is measured.")
+    status: Literal["active", "archived"] = "active"
+    source: str = Field(default="manual", description="manual or a connector citation, e.g. jira:KEY.")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class GoalRequest(BaseModel):
+    """Fields a caller supplies to create a goal; the id/status/timestamps are server-set."""
+
+    title: str
+    description: str = ""
+    level: GoalLevel = GoalLevel.DEPARTMENT
+    owner: str = ""
+    parent_id: str | None = None
+    metric: str = ""
+
+
+class GoalLink(BaseModel):
+    """How a decision relates to one goal, as judged by the alignment step."""
+
+    goal_id: str
+    title: str
+    relation: Literal["advances", "conflicts", "neutral"]
+    note: str = ""
+
+
+class GoalAlignment(BaseModel):
+    """The alignment step's structured judgment of a decision against active goals (GA-4)."""
+
+    score: float = Field(ge=0.0, le=1.0, description="Overall strategic alignment, 0–1.")
+    rationale: str = Field(default="", description="One or two sentences on the overall fit.")
+    advances: list[GoalLink] = Field(default_factory=list)
+    conflicts: list[GoalLink] = Field(default_factory=list)
+
+
 # ----- Full decision record (the audit artifact, GV-3) ---------------------------
 
 class DecisionRecord(BaseModel):
@@ -195,6 +247,10 @@ class DecisionRecord(BaseModel):
     precedents: list[Precedent] = Field(
         default_factory=list,
         description="Similar past decisions the judge was shown (KG / DI-2 institutional memory).",
+    )
+    alignment: GoalAlignment | None = Field(
+        default=None,
+        description="Strategic alignment vs. active goals (GA-4); None when no goals are set.",
     )
     usage: UsageSummary = Field(default_factory=UsageSummary)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

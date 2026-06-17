@@ -162,3 +162,29 @@ def test_key_management_requires_admin(client):
 
     revoked = tc.delete(f"/v1/keys/{body['info']['id']}", headers=_h(keys["admin"]))
     assert revoked.status_code == 200
+
+
+def test_goal_management(client):
+    tc, keys = client
+    # Creating goals is admin-only; a requester is forbidden.
+    assert (
+        tc.post("/v1/goals", json={"title": "Grow ARR 30%"}, headers=_h(keys["requester"])).status_code
+        == 403
+    )
+
+    created = tc.post(
+        "/v1/goals",
+        json={"title": "Grow ARR 30%", "level": "board"},
+        headers=_h(keys["admin"]),
+    )
+    assert created.status_code == 200
+    goal_id = created.json()["id"]
+
+    # Anyone who can list decisions can see goals (requester included).
+    listed = tc.get("/v1/goals", headers=_h(keys["requester"]))
+    assert listed.status_code == 200
+    assert any(g["id"] == goal_id for g in listed.json())
+
+    archived = tc.delete(f"/v1/goals/{goal_id}", headers=_h(keys["admin"]))
+    assert archived.status_code == 200
+    assert all(g["id"] != goal_id for g in tc.get("/v1/goals", headers=_h(keys["admin"])).json())

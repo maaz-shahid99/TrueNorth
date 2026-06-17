@@ -11,6 +11,7 @@ import {
   Plug,
   PlusCircle,
   ShieldCheck,
+  Target,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -30,6 +31,10 @@ const groups: { label: string; items: NavItem[] }[] = [
       { href: "/decisions/new", label: "New decision", icon: PlusCircle },
       { href: "/decisions", label: "History", icon: History },
     ],
+  },
+  {
+    label: "Strategy",
+    items: [{ href: "/goals", label: "Goals", icon: Target }],
   },
   {
     label: "Governance",

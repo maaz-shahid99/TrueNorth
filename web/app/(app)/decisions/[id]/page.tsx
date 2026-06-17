@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AlignmentPanel } from "@/components/decision/AlignmentPanel";
 import { ConditionsList } from "@/components/decision/ConditionsList";
 import { DevilsAdvocatePanel } from "@/components/decision/DevilsAdvocatePanel";
 import { EvidenceList } from "@/components/decision/EvidenceList";
@@ -53,6 +54,7 @@ export default async function DecisionDetailPage({
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <MinorityReport text={d.recommendation.minority_report} />
+          {d.alignment && <AlignmentPanel alignment={d.alignment} />}
           <ConditionsList conditions={d.recommendation.conditions} />
           <div>
             <h3 className="mb-3 text-sm font-semibold text-ink">Lens assessments</h3>

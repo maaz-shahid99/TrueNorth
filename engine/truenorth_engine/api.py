@@ -29,12 +29,15 @@ from .auth.ratelimit import enforce_rate_limit
 from .auth.rbac import Permission, Principal, Role
 from .config import get_settings
 from .model_gateway import ModelUnavailableError
+from .goals import gather_goals
 from .pipeline import evaluate_decision
 from .review import compute_state
 from .schemas import (
     ChainVerification,
     DecisionRecord,
     DecisionRequest,
+    Goal,
+    GoalRequest,
     Outcome,
     OutcomeRequest,
     ReviewAction,
@@ -97,8 +100,10 @@ def create_decision(
     store = get_store(settings)
     # Surface similar past decisions (institutional memory) for the judge to weigh (DI-2/KG).
     precedents = store.find_precedents(request, principal.tenant_id)
+    # Active goals (manual + connector) drive the alignment step (GA-4).
+    goals = gather_goals(store, settings, principal.tenant_id)
     try:
-        record = evaluate_decision(request, settings, precedents=precedents)
+        record = evaluate_decision(request, settings, precedents=precedents, goals=goals)
     except ModelUnavailableError as exc:
         # Transient upstream failure after exhausting retries — caller may retry.
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -233,3 +238,32 @@ def revoke_key(
     if not get_keystore(get_settings()).revoke(key_id, principal.tenant_id):
         raise HTTPException(status_code=404, detail="No key with that id.")
     return {"revoked": True}
+
+
+# ----- Goals / strategy (GA-1) ---------------------------------------------------
+
+@app.get("/v1/goals", response_model=list[Goal])
+def list_goals(principal: Principal = Depends(require(Permission.DECISION_LIST))) -> list[Goal]:
+    """The tenant's active strategic goals (anyone who can see decisions can see goals)."""
+    return get_store(get_settings()).list_goals(principal.tenant_id)
+
+
+@app.post("/v1/goals", response_model=Goal)
+def create_goal(
+    body: GoalRequest,
+    principal: Principal = Depends(require(Permission.ADMIN)),
+) -> Goal:
+    """Create a goal (admin only)."""
+    goal = Goal(**body.model_dump())
+    return get_store(get_settings()).add_goal(goal, principal.tenant_id)
+
+
+@app.delete("/v1/goals/{goal_id}")
+def archive_goal(
+    goal_id: str,
+    principal: Principal = Depends(require(Permission.ADMIN)),
+) -> dict[str, bool]:
+    """Archive a goal (admin only); the ledger keeps the history."""
+    if not get_store(get_settings()).archive_goal(goal_id, principal.tenant_id):
+        raise HTTPException(status_code=404, detail="No goal with that id.")
+    return {"archived": True}

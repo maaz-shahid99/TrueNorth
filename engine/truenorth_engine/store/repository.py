@@ -18,6 +18,7 @@ from ..schemas import (
     ChainVerification,
     DecisionRecord,
     DecisionRequest,
+    Goal,
     Outcome,
     Precedent,
     ReviewAction,
@@ -97,6 +98,22 @@ class DecisionStore:
             tenant_id=tenant_id,
         )
 
+    def add_goal(self, goal: Goal, tenant_id: str = "default") -> Goal:
+        """Append a goal (GA-1). Edits/archival are further appends; latest state wins."""
+        self._append(
+            entry_type="goal", decision_id=goal.id, payload_obj=goal, tenant_id=tenant_id
+        )
+        return goal
+
+    def archive_goal(self, goal_id: str, tenant_id: str = "default") -> bool:
+        """Soft-delete a goal by appending an archived copy (the ledger never mutates)."""
+        current = {g.id: g for g in self.list_goals(tenant_id, include_archived=True)}
+        goal = current.get(goal_id)
+        if goal is None:
+            return False
+        self.add_goal(goal.model_copy(update={"status": "archived"}), tenant_id)
+        return True
+
     # ----- reads ------------------------------------------------------------------
 
     def get_decision(self, decision_id: str, tenant_id: str = "default") -> DecisionRecord | None:
@@ -154,6 +171,30 @@ class DecisionStore:
             )
             for p in precedents
         ]
+
+    def list_goals(self, tenant_id: str = "default", include_archived: bool = False) -> list[Goal]:
+        """Return the tenant's goals at their latest state (active only unless asked)."""
+        with self._sf() as session:
+            rows = (
+                session.execute(
+                    select(AuditEntry)
+                    .where(
+                        AuditEntry.tenant_id == tenant_id,
+                        AuditEntry.entry_type == "goal",
+                    )
+                    .order_by(AuditEntry.seq.asc())
+                )
+                .scalars()
+                .all()
+            )
+        latest: dict[str, Goal] = {}
+        for r in rows:
+            goal = Goal.model_validate_json(r.payload)
+            latest[goal.id] = goal  # higher seq overwrites -> latest state wins
+        goals = list(latest.values())
+        if not include_archived:
+            goals = [g for g in goals if g.status == "active"]
+        return goals
 
     def get_outcomes(self, decision_id: str, tenant_id: str = "default") -> list[Outcome]:
         with self._sf() as session:
