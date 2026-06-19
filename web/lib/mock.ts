@@ -1,6 +1,13 @@
 // Mock data so the shell and pages render without the engine running (UI-1), and a sample
 // DecisionRecord that doubles as the offline fixture for the Decision Detail page (UI-2).
-import type { ApiKeyInfo, DecisionRecord, DecisionRequest, Goal, StakesTier } from "./types";
+import type {
+  ApiKeyInfo,
+  CalibrationReport,
+  DecisionRecord,
+  DecisionRequest,
+  Goal,
+  StakesTier,
+} from "./types";
 
 export const sampleDecision: DecisionRecord = {
   id: "demo-release-2-4",
@@ -257,6 +264,25 @@ export const mockGoals: Goal[] = [
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
   },
 ];
+
+export const mockCalibration: CalibrationReport = {
+  total_decisions: 24,
+  decisions_with_outcomes: 15,
+  outcome_coverage: 15 / 24,
+  scored_outcomes: 15,
+  brier_score: 0.17,
+  by_verdict: [
+    { verdict: "Endorse", decisions: 7, with_outcomes: 5, success_rate: 0.8 },
+    { verdict: "Endorse-with-conditions", decisions: 9, with_outcomes: 6, success_rate: 0.67 },
+    { verdict: "Caution", decisions: 5, with_outcomes: 3, success_rate: 0.33 },
+    { verdict: "Oppose", decisions: 3, with_outcomes: 1, success_rate: 0.0 },
+  ],
+  confidence_buckets: [
+    { label: "50–70%", n: 5, predicted_confidence: 0.61, realized_success_rate: 0.6 },
+    { label: "70–85%", n: 7, predicted_confidence: 0.78, realized_success_rate: 0.71 },
+    { label: "≥85%", n: 3, predicted_confidence: 0.9, realized_success_rate: 1.0 },
+  ],
+};
 
 // Synthesize a plausible record for the New Decision flow when no engine is configured,
 // so the submit → detail experience works fully offline (demo mode only).

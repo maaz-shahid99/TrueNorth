@@ -2,8 +2,15 @@
 // (per-user SSO JWT or shared dev key); otherwise falls back to bundled fixtures so the UI
 // is fully reviewable offline.
 import { engineFetch, hasEngineCredential } from "./engine";
-import { mockDecisions, mockGoals, mockKeys, sampleDecision } from "./mock";
-import type { ApiKeyInfo, DecisionRecord, Goal, Outcome, ReviewStatus } from "./types";
+import { mockCalibration, mockDecisions, mockGoals, mockKeys, sampleDecision } from "./mock";
+import type {
+  ApiKeyInfo,
+  CalibrationReport,
+  DecisionRecord,
+  Goal,
+  Outcome,
+  ReviewStatus,
+} from "./types";
 
 export async function getDecision(id: string): Promise<DecisionRecord | null> {
   if (!(await hasEngineCredential())) {
@@ -61,4 +68,21 @@ export async function listGoals(): Promise<Goal[]> {
   const res = await engineFetch("/v1/goals");
   if (!res.ok) return [];
   return (await res.json()) as Goal[];
+}
+
+const EMPTY_CALIBRATION: CalibrationReport = {
+  total_decisions: 0,
+  decisions_with_outcomes: 0,
+  outcome_coverage: 0,
+  scored_outcomes: 0,
+  brier_score: null,
+  by_verdict: [],
+  confidence_buckets: [],
+};
+
+export async function getCalibration(): Promise<CalibrationReport> {
+  if (!(await hasEngineCredential())) return mockCalibration;
+  const res = await engineFetch("/v1/calibration");
+  if (!res.ok) return EMPTY_CALIBRATION;
+  return (await res.json()) as CalibrationReport;
 }

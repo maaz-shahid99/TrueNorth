@@ -222,3 +222,19 @@ def test_meeting_extraction(client, monkeypatch):
         tc.post("/v1/meetings/extract", json={"transcript": "x"}, headers=_h(keys["reviewer"])).status_code
         == 403
     )
+
+
+def test_calibration_endpoint(client):
+    tc, keys = client
+    decision_id = _create(tc, keys["requester"]).json()["id"]
+    tc.post(
+        f"/v1/decisions/{decision_id}/outcomes",
+        json={"realized": "shipped cleanly", "success": True},
+        headers=_h(keys["requester"]),
+    )
+    report = tc.get("/v1/calibration", headers=_h(keys["requester"]))
+    assert report.status_code == 200
+    body = report.json()
+    assert body["total_decisions"] == 1
+    assert body["decisions_with_outcomes"] == 1
+    assert body["scored_outcomes"] == 1

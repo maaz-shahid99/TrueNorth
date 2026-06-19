@@ -213,6 +213,24 @@ class DecisionStore:
             )
             return [Outcome.model_validate_json(r.payload) for r in rows]
 
+    def list_outcomes(self, tenant_id: str = "default", limit: int = 2000) -> list[Outcome]:
+        """All recorded outcomes for the tenant, oldest first (for calibration analytics)."""
+        with self._sf() as session:
+            rows = (
+                session.execute(
+                    select(AuditEntry)
+                    .where(
+                        AuditEntry.tenant_id == tenant_id,
+                        AuditEntry.entry_type == "outcome",
+                    )
+                    .order_by(AuditEntry.seq.asc())
+                    .limit(limit)
+                )
+                .scalars()
+                .all()
+            )
+            return [Outcome.model_validate_json(r.payload) for r in rows]
+
     def get_reviews(self, decision_id: str, tenant_id: str = "default") -> list[ReviewAction]:
         with self._sf() as session:
             rows = (

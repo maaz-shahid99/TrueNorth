@@ -331,3 +331,31 @@ class MeetingExtraction(BaseModel):
 
     summary: str = Field(default="", description="One or two sentences summarizing the meeting.")
     decisions: list[ExtractedDecision] = Field(default_factory=list)
+
+
+# ----- Calibration & learning loop (DI-8 / DI-6) ---------------------------------
+
+class VerdictOutcomeStat(BaseModel):
+    verdict: Verdict
+    decisions: int = 0  # all decisions with this verdict
+    with_outcomes: int = 0  # those with a recorded success/failure
+    success_rate: float | None = None  # fraction of with_outcomes that succeeded
+
+
+class ConfidenceBucket(BaseModel):
+    label: str
+    n: int
+    predicted_confidence: float  # mean engine confidence in this bucket
+    realized_success_rate: float  # fraction that actually succeeded
+
+
+class CalibrationReport(BaseModel):
+    """How well verdicts/confidence predict realized outcomes (DI-6/DI-8 learning loop)."""
+
+    total_decisions: int = 0
+    decisions_with_outcomes: int = 0
+    outcome_coverage: float = 0.0  # decisions_with_outcomes / total
+    scored_outcomes: int = 0  # outcomes carrying a definite success/failure
+    brier_score: float | None = None  # mean (confidence - success)^2; lower is better
+    by_verdict: list[VerdictOutcomeStat] = Field(default_factory=list)
+    confidence_buckets: list[ConfidenceBucket] = Field(default_factory=list)

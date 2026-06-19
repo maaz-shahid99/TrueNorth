@@ -27,6 +27,7 @@ from .auth.jwt import mint_engine_jwt, principal_from_google, verify_google_id_t
 from .auth.keys import ApiKeyInfo, get_keystore
 from .auth.ratelimit import enforce_rate_limit
 from .auth.rbac import Permission, Principal, Role
+from .calibration import compute_calibration
 from .config import get_settings
 from .goals import gather_goals
 from .meetings import extract_decisions
@@ -34,6 +35,7 @@ from .model_gateway import ModelGateway, ModelUnavailableError
 from .pipeline import evaluate_decision
 from .review import compute_state
 from .schemas import (
+    CalibrationReport,
     ChainVerification,
     DecisionRecord,
     DecisionRequest,
@@ -304,3 +306,18 @@ def extract_meeting(
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return MeetingExtractResponse(summary=result.summary, decisions=result.decisions)
+
+
+# ----- Calibration / learning loop (DI-6 / DI-8) ---------------------------------
+
+@app.get("/v1/calibration", response_model=CalibrationReport)
+def calibration(
+    principal: Principal = Depends(require(Permission.DECISION_LIST)),
+) -> CalibrationReport:
+    """How well verdicts/confidence predict realized outcomes for this tenant (DI-8)."""
+    store = get_store(get_settings())
+    decisions = store.list_decisions(tenant_id=principal.tenant_id, limit=500)
+    outcomes_by_id: dict[str, list[Outcome]] = {}
+    for outcome in store.list_outcomes(principal.tenant_id):
+        outcomes_by_id.setdefault(outcome.decision_id, []).append(outcome)
+    return compute_calibration(decisions, outcomes_by_id)

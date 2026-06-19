@@ -207,6 +207,30 @@ export interface ApiKeyInfo {
   created_at: string;
 }
 
+export interface VerdictOutcomeStat {
+  verdict: Verdict;
+  decisions: number;
+  with_outcomes: number;
+  success_rate: number | null;
+}
+
+export interface ConfidenceBucket {
+  label: string;
+  n: number;
+  predicted_confidence: number;
+  realized_success_rate: number;
+}
+
+export interface CalibrationReport {
+  total_decisions: number;
+  decisions_with_outcomes: number;
+  outcome_coverage: number;
+  scored_outcomes: number;
+  brier_score: number | null;
+  by_verdict: VerdictOutcomeStat[];
+  confidence_buckets: ConfidenceBucket[];
+}
+
 export const VERDICTS: Verdict[] = [
   "Endorse",
   "Endorse-with-conditions",
