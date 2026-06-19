@@ -147,6 +147,29 @@ export const sampleDecision: DecisionRecord = {
       },
     ],
   },
+  forecast: {
+    summary: "Mostly fine, but a real tail risk of a keynote-night incident.",
+    scenarios: [
+      {
+        name: "Expected",
+        probability: 0.6,
+        projection: "Ships behind a flag, no major issues; the keynote lands the launch.",
+        drivers: ["staged rollout", "rollback rehearsed"],
+      },
+      {
+        name: "Best case",
+        probability: 0.15,
+        projection: "Clean launch, strong demo, momentum into the event.",
+        drivers: ["flag stays off the demo path"],
+      },
+      {
+        name: "Worst case",
+        probability: 0.25,
+        projection: "A checkout Sev1 surfaces live during the keynote, damaging trust.",
+        drivers: ["55% CI pass rate", "37 open bugs", "no rehearsed rollback"],
+      },
+    ],
+  },
   usage: {
     calls: [],
     total_input_tokens: 18420,

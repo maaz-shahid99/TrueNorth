@@ -26,6 +26,7 @@ from .schemas import (
     Precedent,
     Recommendation,
     ReviewState,
+    ScenarioForecast,
     StakesTier,
 )
 from .telemetry import Telemetry
@@ -103,6 +104,36 @@ def _assess_alignment(gateway, request, goals: list[Goal], tier) -> GoalAlignmen
     )
 
 
+def _forecast(gateway, request, evidence, tier) -> ScenarioForecast | None:
+    """What-if scenario projection (SF-1/SF-2). Only for high-stakes (S1/S2) decisions."""
+    if _tier_rank(tier) > _tier_rank(StakesTier.S2):
+        return None
+    evidence_block = "\n".join(f"- {i.claim}: {i.value}" for i in evidence.items) or "(no evidence)"
+    return gateway.structured(
+        tier=tier,
+        instruction=(
+            f"Decision: {request.question}\nContext: {request.context or '(none)'}\n"
+            f"Evidence:\n{evidence_block}\n\n"
+            f"Project 2–4 plausible scenarios if this decision proceeds (e.g. expected, best "
+            f"case, worst case). For each: a short name, a rough probability in [0,1], a "
+            f"concrete projection of what happens and its impact, and the key drivers. Give a "
+            f"one-line overall outlook. Probabilities need not sum to 1."
+        ),
+        output_format=ScenarioForecast,
+        max_tokens=1500,
+        step="forecast",
+    )
+
+
+def _forecast_block(forecast: ScenarioForecast | None) -> str:
+    if forecast is None:
+        return ""
+    lines = [
+        f"- {s.name} (~{round(s.probability * 100)}%): {s.projection}" for s in forecast.scenarios
+    ]
+    return f"\n\nScenario forecast — {forecast.summary}\n" + "\n".join(lines)
+
+
 def _alignment_block(alignment: GoalAlignment | None) -> str:
     if alignment is None:
         return ""
@@ -130,7 +161,7 @@ def _precedent_block(precedents: list[Precedent]) -> str:
 
 
 def _synthesize(
-    gateway, request, evidence, lenses, devil, tier, settings, precedents, alignment
+    gateway, request, evidence, lenses, devil, tier, settings, precedents, alignment, forecast
 ) -> Recommendation:
     lens_summary = "\n".join(
         f"- {sl.lens.value} (conf {sl.assessment.confidence:.2f}): "
@@ -148,6 +179,7 @@ def _synthesize(
             f"Devil's advocate counter-case: {devil.counter_case}\n"
             f"Flagged biases: {', '.join(devil.bias_flags) or 'none'}"
             f"{_alignment_block(alignment)}"
+            f"{_forecast_block(forecast)}"
             f"{_precedent_block(precedents)}\n\n"
             f"Synthesize ONE verdict on the canonical scale. Cite the lenses that drove it. "
             f"If positive but contingent, use Endorse-with-conditions and give specific, "
@@ -199,8 +231,9 @@ def evaluate_decision(
     lenses = run_lenses(gateway, request, evidence, tier)
     devil = _run_devils_advocate(gateway, request, evidence, lenses, tier)
     alignment = _assess_alignment(gateway, request, goals, tier)
+    forecast = _forecast(gateway, request, evidence, tier)
     recommendation = _synthesize(
-        gateway, request, evidence, lenses, devil, tier, settings, precedents, alignment
+        gateway, request, evidence, lenses, devil, tier, settings, precedents, alignment, forecast
     )
 
     needs_review = review_required(tier, settings)
@@ -216,5 +249,6 @@ def evaluate_decision(
         review_state=ReviewState.PENDING if needs_review else ReviewState.NOT_REQUIRED,
         precedents=precedents,
         alignment=alignment,
+        forecast=forecast,
         usage=telemetry.summary(),
     )

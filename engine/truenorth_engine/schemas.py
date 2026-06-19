@@ -226,6 +226,24 @@ class GoalAlignment(BaseModel):
     conflicts: list[GoalLink] = Field(default_factory=list)
 
 
+# ----- Simulation & forecasting (SF-1 / SF-2) ------------------------------------
+
+class Scenario(BaseModel):
+    """One plausible future if the decision proceeds."""
+
+    name: str = Field(description="Short label, e.g. 'Expected', 'Best case', 'Worst case'.")
+    probability: float = Field(ge=0.0, le=1.0, description="Rough likelihood, 0–1.")
+    projection: str = Field(description="What happens in this scenario and its impact.")
+    drivers: list[str] = Field(default_factory=list, description="Key factors that lead here.")
+
+
+class ScenarioForecast(BaseModel):
+    """Structured what-if projection for a high-stakes decision (SF-1/SF-2)."""
+
+    summary: str = Field(default="", description="One-line overall outlook.")
+    scenarios: list[Scenario] = Field(default_factory=list)
+
+
 # ----- Full decision record (the audit artifact, GV-3) ---------------------------
 
 class DecisionRecord(BaseModel):
@@ -251,6 +269,10 @@ class DecisionRecord(BaseModel):
     alignment: GoalAlignment | None = Field(
         default=None,
         description="Strategic alignment vs. active goals (GA-4); None when no goals are set.",
+    )
+    forecast: ScenarioForecast | None = Field(
+        default=None,
+        description="What-if scenarios (SF-1/SF-2); only generated for high-stakes decisions.",
     )
     usage: UsageSummary = Field(default_factory=UsageSummary)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -148,6 +148,18 @@ export interface MeetingExtraction {
   decisions: ExtractedDecision[];
 }
 
+export interface Scenario {
+  name: string;
+  probability: number; // 0..1
+  projection: string;
+  drivers: string[];
+}
+
+export interface ScenarioForecast {
+  summary: string;
+  scenarios: Scenario[];
+}
+
 export interface DecisionRecord {
   id: string;
   request: DecisionRequest;
@@ -161,6 +173,7 @@ export interface DecisionRecord {
   review_state: ReviewState;
   precedents?: Precedent[];
   alignment?: GoalAlignment | null;
+  forecast?: ScenarioForecast | null;
   usage: UsageSummary;
   created_at: string;
   engine_version: string;
