@@ -186,8 +186,11 @@ All endpoints except `/healthz` require a credential and are RBAC-gated and tena
 | `GET/POST /v1/keys`, `DELETE /v1/keys/{id}` | `admin` | API-key management |
 | `GET /v1/goals` | `decision:list` | list active goals |
 | `POST /v1/goals`, `DELETE /v1/goals/{id}` | `admin` | create / archive goals |
+| `GET /v1/policies` | `decision:list` | list decision-rights policies |
+| `POST /v1/policies`, `DELETE /v1/policies/{id}` | `admin` | create / archive policies |
 | `POST /v1/meetings/extract` | `decision:create` | transcript → candidate decisions |
 | `GET /v1/calibration` | `decision:list` | verdict/confidence vs realized outcomes |
+| `GET /v1/value` | `decision:list` | realized value vs. engine spend (ROI) |
 
 ---
 
@@ -246,10 +249,10 @@ All endpoints except `/healthz` require a credential and are RBAC-gated and tena
 Next.js 15 (App Router, React 19), Tailwind reproducing the **SnowUI** look; charts via
 Recharts; icons via lucide.
 
-**Pages**: Dashboard · New decision (stepper) · **From meeting** · Decisions history
-(paginated) · Decision detail (the signature verdict screen) · Reviews queue · Audit
-(verify-chain) · Analytics (+ calibration) · **Goals** · Settings → Members/API keys ·
-Settings → Connectors · Login.
+**Pages**: Get started · Dashboard · New decision (stepper) · **From meeting** · Decisions
+history (paginated) · Decision detail (the signature verdict screen) · Reviews queue ·
+**Policies** · Audit (verify-chain) · Analytics (+ value & calibration) · **Goals** ·
+Settings → Members/API keys · Settings → Connectors · Login.
 
 **Decision detail** renders: verdict banner + confidence, minority report, alignment panel,
 scenario forecast, conditions, lens cards, devil's-advocate panel, evidence list, precedent
@@ -278,9 +281,14 @@ key management.
 - **12** — goal & strategy alignment.
 - **13** — meeting intelligence (transcript → decision extraction).
 - **14** — learning loop / calibration (14a) + scenario forecasting (14b).
+- **15** — governance & security depth: decision-rights **policy engine** + richer review
+  gates (15a); **prompt-injection screening** of inputs/evidence + a compliance mapping
+  (`engine/COMPLIANCE.md`) (15b).
+- **16** — adoption & value: decision-ROI / **value-realization** analytics (16a); an
+  onboarding banner + **Get started** page (16b).
 
-**Next**: **15** — governance/compliance/security depth (policy engine, decision replay,
-explainability/compliance surfaces); **16** — adoption & GTM polish.
+The roadmap (8–16) is complete. Remaining work is operational, not feature-gated: the live
+model run (Phase 8 verification) and deployment + OpenTelemetry export (rest of 10b).
 
 ---
 
@@ -358,4 +366,5 @@ in `web/.env.local`. Without them, the UI runs in demo mode.
 - **Deployment** + **OpenTelemetry export/dashboards** (rest of Phase 10b) need a host/OTLP
   endpoint.
 - Connectors beyond GitHub/Jira (CRM/HRIS/etc.) and live meeting capture are future work.
-- Governance depth (policy engine, replay, compliance packs) is Phase 15; adoption/GTM is 16.
+- Deeper security/compliance (**BYOK, DLP, ABAC** beyond the policy engine; SOC 2 / ISO
+  certifications; formal retention/erasure) — see `engine/COMPLIANCE.md` for current status.
