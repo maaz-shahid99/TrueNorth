@@ -6,6 +6,7 @@ import type {
   DecisionRecord,
   DecisionRequest,
   Goal,
+  Policy,
   StakesTier,
 } from "./types";
 
@@ -104,6 +105,22 @@ export const sampleDecision: DecisionRecord = {
   },
   review_required: true,
   review_state: "pending",
+  policy_flags: [
+    {
+      policy_id: "pol-exec",
+      name: "Executive sign-off on S2+",
+      effect: "require_review",
+      required_role: "reviewer",
+      reason: "stakes ≥ S2 (was S2)",
+    },
+    {
+      policy_id: "pol-conflict",
+      name: "Flag goal conflicts",
+      effect: "flag",
+      required_role: "reviewer",
+      reason: "conflicts with a goal",
+    },
+  ],
   precedents: [
     {
       decision_id: "d-release-2-5",
@@ -306,6 +323,41 @@ export const mockCalibration: CalibrationReport = {
     { label: "≥85%", n: 3, predicted_confidence: 0.9, realized_success_rate: 1.0 },
   ],
 };
+
+export const mockPolicies: Policy[] = [
+  {
+    id: "pol-exec",
+    name: "Executive sign-off on S2+",
+    description: "Any executive- or board-level decision requires a reviewer's approval.",
+    condition: {
+      decision_types: [],
+      min_stakes: "S2",
+      verdicts: [],
+      on_alignment_conflict: false,
+      min_cost_usd: null,
+    },
+    effect: "require_review",
+    required_role: "reviewer",
+    status: "active",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+  },
+  {
+    id: "pol-conflict",
+    name: "Flag goal conflicts",
+    description: "Surface any decision that conflicts with an active strategic goal.",
+    condition: {
+      decision_types: [],
+      min_stakes: null,
+      verdicts: [],
+      on_alignment_conflict: true,
+      min_cost_usd: null,
+    },
+    effect: "flag",
+    required_role: "reviewer",
+    status: "active",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
+  },
+];
 
 // Synthesize a plausible record for the New Decision flow when no engine is configured,
 // so the submit → detail experience works fully offline (demo mode only).

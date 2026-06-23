@@ -148,6 +148,33 @@ export interface MeetingExtraction {
   decisions: ExtractedDecision[];
 }
 
+export interface PolicyCondition {
+  decision_types: string[];
+  min_stakes: StakesTier | null;
+  verdicts: Verdict[];
+  on_alignment_conflict: boolean;
+  min_cost_usd: number | null;
+}
+
+export interface Policy {
+  id: string;
+  name: string;
+  description: string;
+  condition: PolicyCondition;
+  effect: "require_review" | "flag";
+  required_role: "reviewer" | "admin";
+  status: "active" | "archived";
+  created_at: string;
+}
+
+export interface PolicyFlag {
+  policy_id: string;
+  name: string;
+  effect: "require_review" | "flag";
+  required_role: string;
+  reason: string;
+}
+
 export interface Scenario {
   name: string;
   probability: number; // 0..1
@@ -174,6 +201,7 @@ export interface DecisionRecord {
   precedents?: Precedent[];
   alignment?: GoalAlignment | null;
   forecast?: ScenarioForecast | null;
+  policy_flags?: PolicyFlag[];
   usage: UsageSummary;
   created_at: string;
   engine_version: string;

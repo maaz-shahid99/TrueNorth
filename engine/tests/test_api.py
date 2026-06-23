@@ -238,3 +238,23 @@ def test_calibration_endpoint(client):
     assert body["total_decisions"] == 1
     assert body["decisions_with_outcomes"] == 1
     assert body["scored_outcomes"] == 1
+
+
+def test_policy_management(client):
+    # Pipeline gating is covered in test_policy.py; here we cover CRUD + RBAC.
+    tc, keys = client
+    assert (
+        tc.post("/v1/policies", json={"name": "x"}, headers=_h(keys["requester"])).status_code == 403
+    )
+    created = tc.post(
+        "/v1/policies",
+        json={"name": "All releases reviewed", "condition": {"decision_types": ["release_go_no_go"]}},
+        headers=_h(keys["admin"]),
+    )
+    assert created.status_code == 200
+    policy_id = created.json()["id"]
+
+    listed = tc.get("/v1/policies", headers=_h(keys["requester"]))
+    assert listed.status_code == 200 and any(p["id"] == policy_id for p in listed.json())
+    assert tc.delete(f"/v1/policies/{policy_id}", headers=_h(keys["admin"])).status_code == 200
+    assert all(p["id"] != policy_id for p in tc.get("/v1/policies", headers=_h(keys["admin"])).json())

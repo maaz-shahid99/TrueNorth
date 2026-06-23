@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Plug,
   PlusCircle,
+  Scale,
   ShieldCheck,
   Target,
   Users,
@@ -42,6 +43,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     label: "Governance",
     items: [
       { href: "/reviews", label: "Reviews", icon: ShieldCheck },
+      { href: "/policies", label: "Policies", icon: Scale },
       { href: "/audit", label: "Audit", icon: FileCheck2 },
     ],
   },

@@ -20,6 +20,7 @@ from ..schemas import (
     DecisionRequest,
     Goal,
     Outcome,
+    Policy,
     Precedent,
     ReviewAction,
 )
@@ -112,6 +113,44 @@ class DecisionStore:
         if goal is None:
             return False
         self.add_goal(goal.model_copy(update={"status": "archived"}), tenant_id)
+        return True
+
+    def add_policy(self, policy: Policy, tenant_id: str = "default") -> Policy:
+        """Append a decision-rights policy (GV-1); latest state per id wins."""
+        self._append(
+            entry_type="policy", decision_id=policy.id, payload_obj=policy, tenant_id=tenant_id
+        )
+        return policy
+
+    def list_policies(self, tenant_id: str = "default", include_archived: bool = False) -> list[Policy]:
+        with self._sf() as session:
+            rows = (
+                session.execute(
+                    select(AuditEntry)
+                    .where(
+                        AuditEntry.tenant_id == tenant_id,
+                        AuditEntry.entry_type == "policy",
+                    )
+                    .order_by(AuditEntry.seq.asc())
+                )
+                .scalars()
+                .all()
+            )
+        latest: dict[str, Policy] = {}
+        for r in rows:
+            policy = Policy.model_validate_json(r.payload)
+            latest[policy.id] = policy
+        policies = list(latest.values())
+        if not include_archived:
+            policies = [p for p in policies if p.status == "active"]
+        return policies
+
+    def archive_policy(self, policy_id: str, tenant_id: str = "default") -> bool:
+        current = {p.id: p for p in self.list_policies(tenant_id, include_archived=True)}
+        policy = current.get(policy_id)
+        if policy is None:
+            return False
+        self.add_policy(policy.model_copy(update={"status": "archived"}), tenant_id)
         return True
 
     # ----- reads ------------------------------------------------------------------

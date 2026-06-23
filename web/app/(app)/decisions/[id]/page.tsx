@@ -5,6 +5,7 @@ import { AlignmentPanel } from "@/components/decision/AlignmentPanel";
 import { ConditionsList } from "@/components/decision/ConditionsList";
 import { DevilsAdvocatePanel } from "@/components/decision/DevilsAdvocatePanel";
 import { ForecastPanel } from "@/components/decision/ForecastPanel";
+import { GovernancePanel } from "@/components/decision/GovernancePanel";
 import { EvidenceList } from "@/components/decision/EvidenceList";
 import { LensCard } from "@/components/decision/LensCard";
 import { MinorityReport } from "@/components/decision/MinorityReport";
@@ -55,6 +56,9 @@ export default async function DecisionDetailPage({
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <MinorityReport text={d.recommendation.minority_report} />
+          {d.policy_flags && d.policy_flags.length > 0 && (
+            <GovernancePanel flags={d.policy_flags} />
+          )}
           {d.alignment && <AlignmentPanel alignment={d.alignment} />}
           {d.forecast && <ForecastPanel forecast={d.forecast} />}
           <ConditionsList conditions={d.recommendation.conditions} />

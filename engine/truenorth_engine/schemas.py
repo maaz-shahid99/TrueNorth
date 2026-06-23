@@ -244,6 +244,57 @@ class ScenarioForecast(BaseModel):
     scenarios: list[Scenario] = Field(default_factory=list)
 
 
+# ----- Governance: policy / decision-rights engine (GV-1 / GV-2) -----------------
+
+class PolicyCondition(BaseModel):
+    """Attribute conditions that trigger a policy (all set conditions must match — AND)."""
+
+    decision_types: list[str] = Field(default_factory=list, description="Empty = any type.")
+    min_stakes: StakesTier | None = Field(
+        default=None, description="Trigger when stakes are at or above this tier (S1 highest)."
+    )
+    verdicts: list[Verdict] = Field(default_factory=list, description="Empty = any verdict.")
+    on_alignment_conflict: bool = Field(
+        default=False, description="Trigger only when the decision conflicts with a goal."
+    )
+    min_cost_usd: float | None = Field(
+        default=None, description="Trigger when the decision's model spend is at least this."
+    )
+
+
+class Policy(BaseModel):
+    """A decision-rights rule: when its condition matches, it gates or flags the decision."""
+
+    id: str = Field(default_factory=lambda: uuid4().hex[:12])
+    name: str
+    description: str = ""
+    condition: PolicyCondition = Field(default_factory=PolicyCondition)
+    effect: Literal["require_review", "flag"] = "require_review"
+    required_role: Literal["reviewer", "admin"] = "reviewer"
+    status: Literal["active", "archived"] = "active"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class PolicyRequest(BaseModel):
+    """Fields a caller supplies to create a policy; id/status/timestamp are server-set."""
+
+    name: str
+    description: str = ""
+    condition: PolicyCondition = Field(default_factory=PolicyCondition)
+    effect: Literal["require_review", "flag"] = "require_review"
+    required_role: Literal["reviewer", "admin"] = "reviewer"
+
+
+class PolicyFlag(BaseModel):
+    """A policy that fired on a decision, recorded on the decision for audit (GV-3)."""
+
+    policy_id: str
+    name: str
+    effect: Literal["require_review", "flag"]
+    required_role: str = ""
+    reason: str = ""
+
+
 # ----- Full decision record (the audit artifact, GV-3) ---------------------------
 
 class DecisionRecord(BaseModel):
@@ -273,6 +324,10 @@ class DecisionRecord(BaseModel):
     forecast: ScenarioForecast | None = Field(
         default=None,
         description="What-if scenarios (SF-1/SF-2); only generated for high-stakes decisions.",
+    )
+    policy_flags: list[PolicyFlag] = Field(
+        default_factory=list,
+        description="Decision-rights policies that fired on this decision (GV-1/GV-2).",
     )
     usage: UsageSummary = Field(default_factory=UsageSummary)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

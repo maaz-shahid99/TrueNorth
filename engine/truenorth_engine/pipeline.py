@@ -15,6 +15,7 @@ from .config import Settings, get_settings
 from .evidence import gather_evidence
 from .lenses import run_lenses
 from .model_gateway import ModelGateway
+from .policy import evaluate_policies, requires_review
 from .review import review_required
 from .schemas import (
     DecisionRecord,
@@ -23,6 +24,7 @@ from .schemas import (
     EvidencePack,
     Goal,
     GoalAlignment,
+    Policy,
     Precedent,
     Recommendation,
     ReviewState,
@@ -206,6 +208,7 @@ def evaluate_decision(
     evidence: EvidencePack | None = None,
     precedents: list[Precedent] | None = None,
     goals: list[Goal] | None = None,
+    policies: list[Policy] | None = None,
 ) -> DecisionRecord:
     """Run the full pipeline and return the auditable decision record.
 
@@ -220,6 +223,7 @@ def evaluate_decision(
     gateway = gateway or ModelGateway(settings, telemetry=telemetry)
     precedents = precedents or []
     goals = goals or []
+    policies = policies or []
 
     if not request.options:
         request.options = ["Proceed", "Do nothing"]
@@ -236,7 +240,17 @@ def evaluate_decision(
         gateway, request, evidence, lenses, devil, tier, settings, precedents, alignment, forecast
     )
 
-    needs_review = review_required(tier, settings)
+    usage = telemetry.summary()
+    # Apply decision-rights policies on top of the stakes-based gate (GV-1/GV-2).
+    policy_flags = evaluate_policies(
+        policies,
+        decision_type=request.decision_type,
+        stakes=tier,
+        verdict=recommendation.verdict,
+        has_alignment_conflict=alignment is not None and len(alignment.conflicts) > 0,
+        cost_usd=usage.total_cost_usd,
+    )
+    needs_review = review_required(tier, settings) or requires_review(policy_flags)
     return DecisionRecord(
         request=request,
         stakes=tier,
@@ -250,5 +264,6 @@ def evaluate_decision(
         precedents=precedents,
         alignment=alignment,
         forecast=forecast,
-        usage=telemetry.summary(),
+        policy_flags=policy_flags,
+        usage=usage,
     )

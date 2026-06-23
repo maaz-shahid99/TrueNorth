@@ -44,6 +44,8 @@ from .schemas import (
     GoalRequest,
     Outcome,
     OutcomeRequest,
+    Policy,
+    PolicyRequest,
     ReviewAction,
     ReviewActionInput,
     ReviewStatus,
@@ -106,8 +108,12 @@ def create_decision(
     precedents = store.find_precedents(request, principal.tenant_id)
     # Active goals (manual + connector) drive the alignment step (GA-4).
     goals = gather_goals(store, settings, principal.tenant_id)
+    # Decision-rights policies gate / flag the decision on top of the stakes default (GV-1/GV-2).
+    policies = store.list_policies(principal.tenant_id)
     try:
-        record = evaluate_decision(request, settings, precedents=precedents, goals=goals)
+        record = evaluate_decision(
+            request, settings, precedents=precedents, goals=goals, policies=policies
+        )
     except ModelUnavailableError as exc:
         # Transient upstream failure after exhausting retries — caller may retry.
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -270,6 +276,37 @@ def archive_goal(
     """Archive a goal (admin only); the ledger keeps the history."""
     if not get_store(get_settings()).archive_goal(goal_id, principal.tenant_id):
         raise HTTPException(status_code=404, detail="No goal with that id.")
+    return {"archived": True}
+
+
+# ----- Governance: decision-rights policies (GV-1 / GV-2) ------------------------
+
+@app.get("/v1/policies", response_model=list[Policy])
+def list_policies(
+    principal: Principal = Depends(require(Permission.DECISION_LIST)),
+) -> list[Policy]:
+    """The tenant's active decision-rights policies."""
+    return get_store(get_settings()).list_policies(principal.tenant_id)
+
+
+@app.post("/v1/policies", response_model=Policy)
+def create_policy(
+    body: PolicyRequest,
+    principal: Principal = Depends(require(Permission.ADMIN)),
+) -> Policy:
+    """Create a decision-rights policy (admin only)."""
+    policy = Policy(**body.model_dump())
+    return get_store(get_settings()).add_policy(policy, principal.tenant_id)
+
+
+@app.delete("/v1/policies/{policy_id}")
+def archive_policy(
+    policy_id: str,
+    principal: Principal = Depends(require(Permission.ADMIN)),
+) -> dict[str, bool]:
+    """Archive a policy (admin only); the ledger keeps the history."""
+    if not get_store(get_settings()).archive_policy(policy_id, principal.tenant_id):
+        raise HTTPException(status_code=404, detail="No policy with that id.")
     return {"archived": True}
 
 
