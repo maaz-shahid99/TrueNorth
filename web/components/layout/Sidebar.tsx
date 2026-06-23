@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Plug,
   PlusCircle,
+  Rocket,
   Scale,
   ShieldCheck,
   Target,
@@ -29,6 +30,7 @@ const groups: { label: string; items: NavItem[] }[] = [
   {
     label: "Decisions",
     items: [
+      { href: "/get-started", label: "Get started", icon: Rocket },
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/decisions/new", label: "New decision", icon: PlusCircle },
       { href: "/decisions/from-meeting", label: "From meeting", icon: FileText },

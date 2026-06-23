@@ -3,6 +3,7 @@ import { StakesBars } from "@/components/charts/StakesBars";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { VerdictDonut } from "@/components/charts/VerdictDonut";
 import { RightPanel } from "@/components/layout/RightPanel";
+import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner";
 import { ReviewPill, StakesPill, VerdictPill } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <OnboardingBanner />
       <div>
         <h1 className="text-xl font-semibold">Overview</h1>
         <p className="text-sm text-muted">Decision activity across your workspace.</p>
