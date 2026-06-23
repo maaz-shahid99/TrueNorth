@@ -202,6 +202,7 @@ export interface DecisionRecord {
   alignment?: GoalAlignment | null;
   forecast?: ScenarioForecast | null;
   policy_flags?: PolicyFlag[];
+  safety_flags?: string[];
   usage: UsageSummary;
   created_at: string;
   engine_version: string;

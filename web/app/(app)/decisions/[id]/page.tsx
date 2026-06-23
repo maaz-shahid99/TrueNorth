@@ -51,6 +51,16 @@ export default async function DecisionDetailPage({
         </div>
       </div>
 
+      {d.safety_flags && d.safety_flags.length > 0 && (
+        <div className="rounded-2xl border border-line bg-verdict-oppose-bg p-4">
+          <p className="text-sm font-semibold text-verdict-oppose">Input safety flags</p>
+          <p className="mt-1 text-sm text-ink">
+            Possible prompt-injection patterns were detected in this decision&apos;s inputs or
+            evidence, so it was routed to human review (SC-3): {d.safety_flags.join(", ")}.
+          </p>
+        </div>
+      )}
+
       <VerdictBanner recommendation={d.recommendation} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">

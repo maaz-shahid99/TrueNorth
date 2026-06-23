@@ -329,6 +329,10 @@ class DecisionRecord(BaseModel):
         default_factory=list,
         description="Decision-rights policies that fired on this decision (GV-1/GV-2).",
     )
+    safety_flags: list[str] = Field(
+        default_factory=list,
+        description="Prompt-injection / poisoning patterns detected in the inputs (SC-3).",
+    )
     usage: UsageSummary = Field(default_factory=UsageSummary)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     engine_version: str = "0.1.0"
