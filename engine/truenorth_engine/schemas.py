@@ -440,3 +440,29 @@ class CalibrationReport(BaseModel):
     brier_score: float | None = None  # mean (confidence - success)^2; lower is better
     by_verdict: list[VerdictOutcomeStat] = Field(default_factory=list)
     confidence_buckets: list[ConfidenceBucket] = Field(default_factory=list)
+
+
+# ----- Value realization (AD-4) --------------------------------------------------
+
+class ValueByType(BaseModel):
+    decision_type: str
+    decisions: int
+    spend_usd: float
+
+
+class ValueReport(BaseModel):
+    """Decision-ROI attribution: realized value vs. the cost of running the engine (AD-4).
+
+    Realized value is summed from a numeric ``value_usd`` metric on recorded outcomes
+    (recorders log it when a decision's impact is quantifiable); spend is the engine's own
+    model cost. ROI is reported only when both are present.
+    """
+
+    decisions: int = 0
+    decisions_with_outcomes: int = 0
+    model_spend_usd: float = 0.0
+    realized_value_usd: float = 0.0
+    net_value_usd: float = 0.0
+    roi: float | None = None
+    median_days_to_outcome: float | None = None
+    by_type: list[ValueByType] = Field(default_factory=list)

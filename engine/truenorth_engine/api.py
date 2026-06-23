@@ -49,8 +49,10 @@ from .schemas import (
     ReviewAction,
     ReviewActionInput,
     ReviewStatus,
+    ValueReport,
 )
 from .store import get_store
+from .value import compute_value
 
 app = FastAPI(title="TrueNorth Decision Engine", version="0.1.0")
 
@@ -358,3 +360,16 @@ def calibration(
     for outcome in store.list_outcomes(principal.tenant_id):
         outcomes_by_id.setdefault(outcome.decision_id, []).append(outcome)
     return compute_calibration(decisions, outcomes_by_id)
+
+
+# ----- Value realization / decision ROI (AD-4) -----------------------------------
+
+@app.get("/v1/value", response_model=ValueReport)
+def value(principal: Principal = Depends(require(Permission.DECISION_LIST))) -> ValueReport:
+    """Realized value vs. engine spend (ROI) for this tenant (AD-4)."""
+    store = get_store(get_settings())
+    decisions = store.list_decisions(tenant_id=principal.tenant_id, limit=500)
+    outcomes_by_id: dict[str, list[Outcome]] = {}
+    for outcome in store.list_outcomes(principal.tenant_id):
+        outcomes_by_id.setdefault(outcome.decision_id, []).append(outcome)
+    return compute_value(decisions, outcomes_by_id)

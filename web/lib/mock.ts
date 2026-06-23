@@ -8,6 +8,7 @@ import type {
   Goal,
   Policy,
   StakesTier,
+  ValueReport,
 } from "./types";
 
 export const sampleDecision: DecisionRecord = {
@@ -358,6 +359,22 @@ export const mockPolicies: Policy[] = [
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
   },
 ];
+
+export const mockValue: ValueReport = {
+  decisions: 24,
+  decisions_with_outcomes: 15,
+  model_spend_usd: 9.42,
+  realized_value_usd: 412000,
+  net_value_usd: 411990.58,
+  roi: 43736.73,
+  median_days_to_outcome: 12.5,
+  by_type: [
+    { decision_type: "discount_approval", decisions: 9, spend_usd: 3.1 },
+    { decision_type: "release_go_no_go", decisions: 7, spend_usd: 3.4 },
+    { decision_type: "vendor_procurement", decisions: 5, spend_usd: 2.0 },
+    { decision_type: "hiring_approval", decisions: 3, spend_usd: 0.92 },
+  ],
+};
 
 // Synthesize a plausible record for the New Decision flow when no engine is configured,
 // so the submit → detail experience works fully offline (demo mode only).

@@ -8,6 +8,7 @@ import {
   mockGoals,
   mockKeys,
   mockPolicies,
+  mockValue,
   sampleDecision,
 } from "./mock";
 import type {
@@ -18,6 +19,7 @@ import type {
   Outcome,
   Policy,
   ReviewStatus,
+  ValueReport,
 } from "./types";
 
 export async function getDecision(id: string): Promise<DecisionRecord | null> {
@@ -100,4 +102,22 @@ export async function getCalibration(): Promise<CalibrationReport> {
   const res = await engineFetch("/v1/calibration");
   if (!res.ok) return EMPTY_CALIBRATION;
   return (await res.json()) as CalibrationReport;
+}
+
+const EMPTY_VALUE: ValueReport = {
+  decisions: 0,
+  decisions_with_outcomes: 0,
+  model_spend_usd: 0,
+  realized_value_usd: 0,
+  net_value_usd: 0,
+  roi: null,
+  median_days_to_outcome: null,
+  by_type: [],
+};
+
+export async function getValue(): Promise<ValueReport> {
+  if (!(await hasEngineCredential())) return mockValue;
+  const res = await engineFetch("/v1/value");
+  if (!res.ok) return EMPTY_VALUE;
+  return (await res.json()) as ValueReport;
 }

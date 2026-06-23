@@ -273,6 +273,23 @@ export interface CalibrationReport {
   confidence_buckets: ConfidenceBucket[];
 }
 
+export interface ValueByType {
+  decision_type: string;
+  decisions: number;
+  spend_usd: number;
+}
+
+export interface ValueReport {
+  decisions: number;
+  decisions_with_outcomes: number;
+  model_spend_usd: number;
+  realized_value_usd: number;
+  net_value_usd: number;
+  roi: number | null;
+  median_days_to_outcome: number | null;
+  by_type: ValueByType[];
+}
+
 export const VERDICTS: Verdict[] = [
   "Endorse",
   "Endorse-with-conditions",

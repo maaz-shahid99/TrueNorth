@@ -4,15 +4,16 @@ import { VerdictDonut } from "@/components/charts/VerdictDonut";
 import { VerdictPill } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
-import { getCalibration, listDecisions } from "@/lib/data";
+import { getCalibration, getValue, listDecisions } from "@/lib/data";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { computeStats } from "@/lib/stats";
-import { verdictHex } from "@/lib/verdict";
+import { decisionTypeLabel, verdictHex } from "@/lib/verdict";
 
 export default async function AnalyticsPage() {
   const decisions = await listDecisions();
   const stats = computeStats(decisions);
   const calibration = await getCalibration();
+  const value = await getValue();
 
   return (
     <div className="space-y-6">
@@ -61,6 +62,49 @@ export default async function AnalyticsPage() {
           ))}
         </div>
       </SectionCard>
+
+      <div>
+        <h2 className="text-lg font-semibold">Value realized</h2>
+        <p className="text-sm text-muted">
+          Decision ROI: realized value vs. the cost of running the engine (AD-4).
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          label="Realized value"
+          value={`$${Math.round(value.realized_value_usd).toLocaleString()}`}
+          tint="mint"
+        />
+        <StatCard label="Engine spend" value={formatCurrency(value.model_spend_usd)} tint="peach" />
+        <StatCard
+          label="ROI"
+          value={value.roi === null ? "—" : `${value.roi.toLocaleString()}×`}
+          tint="lilac"
+        />
+        <StatCard
+          label="Median days to outcome"
+          value={value.median_days_to_outcome === null ? "—" : String(value.median_days_to_outcome)}
+          tint="blue"
+        />
+      </div>
+
+      {value.by_type.length > 0 && (
+        <SectionCard title="Decisions & spend by type">
+          <div className="space-y-2.5 text-sm">
+            {value.by_type.map((b) => (
+              <div key={b.decision_type} className="flex items-center justify-between gap-4">
+                <span className="text-ink">
+                  {decisionTypeLabel[b.decision_type] ?? b.decision_type}
+                </span>
+                <span className="text-muted">
+                  {b.decisions} decisions · {formatCurrency(b.spend_usd)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
 
       <div>
         <h2 className="text-lg font-semibold">Calibration &amp; learning</h2>
